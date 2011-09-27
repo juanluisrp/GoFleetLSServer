@@ -1,68 +1,70 @@
-﻿--Travelling Salesman Brute Force Solution
-DROP FUNCTION IF EXISTS gofleet_tsp(TEXT, TEXT, TEXT, INTEGER) CASCADE;
-DROP FUNCTION IF EXISTS gofleet_tsp(TEXT, TEXT, TEXT, INTEGER) CASCADE;
-DROP FUNCTION IF EXISTS gofleet_tsp_next(TEXT, TEXT, TEXT, INTEGER) CASCADE;
-DROP TYPE IF EXISTS gofleet_tsp_res_table;
-CREATE TYPE gofleet_tsp_res_table as (
-			  id BIGINT,
-                          edge INTEGER,
-			  the_geom GEOMETRY,
-                          cost DOUBLE PRECISION
-);
+﻿DROP FUNCTION IF EXISTS gofleet_tsp(TEXT, INTEGER[], TEXT, INTEGER) CASCADE;
+DROP FUNCTION IF EXISTS gofleet_tsp_next(TEXT, INTEGER[], TEXT, INTEGER, INTEGER[]) CASCADE;
 
-CREATE FUNCTION gofleet_tsp_next(rtable TEXT, ptable TEXT, gid TEXT, source INTEGER)
+/* Function to find the nearest path */
+CREATE FUNCTION gofleet_tsp_next(routingTable TEXT, stopTable INTEGER[], gid TEXT, source INTEGER, routingRes INTEGER[])
 RETURNS INTEGER AS 
 $BODY$
 DECLARE
 	answer INTEGER;
-	r RECORD;
+	r INTEGER;
+	i INTEGER;
+	arrayTemp INTEGER[]:= '{}';
+	routingNext DOUBLE PRECISION[][]:= '{}';
+	rec RECORD;
+	temporalCost NUMERIC;
+	res INTEGER;
         BEGIN
-            RAISE INFO 'gofleet_tsp_next(%, %, %, %)', rtable, ptable, gid, source;  
-	    EXECUTE 'DROP TABLE IF EXISTS routing_next';
-            EXECUTE 'CREATE TEMPORARY TABLE routing_next
-			(
-			  id BIGSERIAL NOT NULL,
-                          edge INTEGER NOT NULL,
-                          cost DOUBLE PRECISION,
-                          CONSTRAINT routing_next_pk PRIMARY KEY (id)
-                        )';
-  
+            RAISE INFO 'gofleet_tsp_next(%, %, %, %)', routingTable, stopTable, gid, source; 
 	    BEGIN
-		FOR r IN EXECUTE 'SELECT DISTINCT id FROM ' || ptable || ' as p WHERE p.id <> ' || source ||
-				' AND NOT EXISTS (SELECT 1 FROM routing_res as re where p.id =re.edge)' LOOP
-		  RAISE DEBUG 'Calculado hacia %', r.id;
-		  BEGIN
-			INSERT INTO routing_next
-				(edge, "cost")
-				(select r.id, sum(cost) from 
-					shortest_path_shooting_star('SELECT ' || gid || ' as id, 
-								source, 
-								target, 
-								st_length(the_geom) as cost, 
-								st_length(the_geom) as reverse_cost,
-								x1,
-								y1,
-								x2,
-								y2,
-								rule,
-								to_cost FROM ' || rtable, source, r.id :: integer, true, true));
-		  EXCEPTION 
-                        WHEN internal_error THEN 
-			RAISE WARNING 'Error calculating route from % to %', source, r.id;
-		  END;
-		  END LOOP;
-		RAISE DEBUG 'Calculado para %', source;
-		FOR r IN SELECT DISTINCT edge, cost FROM routing_next ORDER BY cost ASC LOOP
-			RAISE DEBUG 'Resultados cost % edge %', r.cost, r.edge;
+		i := 1;
+		-- For each "i" between lower limit and upper limit of array: --
+		FOR i IN array_lower(stopTable,1) .. array_upper(stopTable,1) LOOP
+			-- The element of stopTable in "i" position would be different of the source point --
+			-- In that case, we put this element in a temporal array --
+			IF (stopTable[i] <> source) THEN
+				arrayTemp := ARRAY[stopTable[i]];
+				-- We check if we haven't took it before (if it isn't contents in routingRes) --
+ 				IF(NOT(routingRes @> arrayTemp)) THEN
+					BEGIN
+						-- We look for the nearest distance for each of them --
+						FOR rec in select sum(cost) as cost from 
+								shortest_path_shooting_star('SELECT ' || gid || ' as id, 
+									source, 
+									target, 
+									cost, 
+									reverse_cost,
+									x1,
+									y1,
+									x2,
+									y2,
+									rule,
+									to_cost FROM ' || routingTable, source, stopTable[i]:: integer, false, false) LOOP
+							-- We put in an array the stop number and its cost --
+							routingNext:= routingNext || ARRAY[ARRAY[stopTable[i], rec.cost]]::DOUBLE PRECISION[];
+						END LOOP;
+					  EXCEPTION 
+						WHEN internal_error THEN 
+						RAISE WARNING 'Error calculating route from % to %', source, stopTable[i];
+					  END;
+				END IF;
+			END IF;
 		END LOOP;
-                SELECT edge INTO answer FROM routing_next WHERE edge <> -1 ORDER BY cost ASC LIMIT 1;
-		RAISE INFO 'Going to EDGE %', answer;   
-              
+		temporalCost:= routingNext[1][2];
+		res := 1;
+                -- We look for in routingNext the lower cost and we take its edge --
+		FOR i IN 1 .. array_upper(routingNext, 1) LOOP
+			IF(temporalCost <= routingNext[i][2])THEN
+				res:=i;
+				temporalCost:= routingNext[i][2];
+			END IF;
+		END LOOP;
+		RAISE INFO 'Going to EDGE %', routingNext[res][1];   
                 EXCEPTION 
                         WHEN internal_error THEN 
                         RAISE WARNING 'Error calculating next from edge %',source;
                 END;
-                RETURN answer;		
+                RETURN routingNext[res][1];		
         END;
 $BODY$ 
 LANGUAGE 'plpgsql';
@@ -71,8 +73,8 @@ LANGUAGE 'plpgsql';
 --The points table contains IDs from the routing table 
 --where we need to stop
 --Routing table contains all the pgrouting data
-CREATE FUNCTION gofleet_tsp(rtable TEXT, ptable TEXT, gid TEXT, source INTEGER)
-RETURNS setof gofleet_tsp_res_table AS 
+CREATE FUNCTION gofleet_tsp(routingTable TEXT, stopTable INTEGER[], gid TEXT, source INTEGER)
+RETURNS TEXT[][] AS 
 $BODY$
 DECLARE
 	target INTEGER;
@@ -80,58 +82,40 @@ DECLARE
 	max INTEGER;
 	source_ INTEGER;
 	r RECORD;
+	g RECORD;
+	i INTEGER;
+	routingRes INTEGER[]:='{}';
+	res CHARACTER VARYING[][]:='{}';
+	geometry CHARACTER VARYING;
         BEGIN
-	    RAISE INFO 'gofleet_tsp(%, %, %, %)', rtable, ptable, gid, source_;
-	    EXECUTE 'DROP TABLE IF EXISTS routing_res';
-            EXECUTE 'CREATE TEMPORARY TABLE routing_res
-			(
-			  id BIGSERIAL NOT NULL,
-                          edge INTEGER NOT NULL,
-                          the_geom GEOMETRY,
-                          cost DOUBLE PRECISION,
-                          CONSTRAINT routing_res_pk PRIMARY KEY (id)
-                        )';
-
-            RAISE DEBUG 'Table routing_res created.';   
-	    SELECT source INTO source_;
-	    BEGIN
-		SELECT COUNT(1) INTO done FROM routing_res as re WHERE 
-					EXISTS (SELECT 1 FROM puntos p WHERE p.id = re.edge);
-					
-		SELECT COUNT(1) INTO max FROM puntos p;
-		WHILE done < max LOOP
-		  SELECT * INTO target FROM gofleet_tsp_next(rtable, ptable, gid, source_);
-		  INSERT INTO routing_res
-                        (edge, "cost")
-                        (select edge_id, cost from 
-			    shortest_path_shooting_star('SELECT ' || gid || ' as id, 
-								source, 
-								target, 
-								st_length(the_geom) as cost, 
-								st_length(the_geom) as reverse_cost,
-								x1,
-								y1,
-								x2,
-								y2,
-								rule,
-								to_cost FROM ' || rtable, source_, target, true, true));
-		  SELECT target INTO source_;
-		  SELECT COUNT(1) INTO done FROM routing_res as re WHERE 
-					EXISTS (SELECT 1 FROM puntos p WHERE p.id = re.edge);
-
-		  FOR r in SELECT * FROM routing_res LOOP
-			RAISE INFO '%', r;
-		  END LOOP;
-
-		  END LOOP;
-                EXCEPTION 
-                        WHEN internal_error THEN 
-                        RAISE WARNING 'Error calculating route from % to %',source_, target;
-                END;
-
-                EXECUTE 'UPDATE routing_res SET the_geom = (SELECT the_geom from ways where routing_res.edge = ways.gid)';
-
-		RETURN QUERY EXECUTE 'SELECT * FROM routing_res ORDER BY id ASC';
+		RAISE INFO 'gofleet_tsp(%, %, %, %)', routingTable, stopTable, gid, source; 
+		source_ := source;	
+		WHILE NOT(stopTable <@ routingRes) LOOP
+			-- we put in target the next nearest element --
+			SELECT * INTO target FROM gofleet_tsp_next(routingTable, stopTable, gid, source_, routingRes);
+			FOR r in SELECT edge_id as edge, "cost" as cost
+				from shortest_path_shooting_star('SELECT ' || gid || ' as id,
+							source, 
+							target, 
+							cost, 
+							reverse_cost,
+							x1,
+							y1,
+							x2,
+							y2,
+							rule,
+							to_cost FROM ' || routingTable, source_, target, true, true) LOOP
+				-- We update routingRes --
+				routingRes := routingRes || r.edge;
+				FOR g IN EXECUTE ('SELECT st_asText(the_geom) as the_geom FROM '||routingTable|| ' where '||r.edge||' = '||routingTable||'.gid') LOOP
+					geometry:= g.the_geom;
+				END LOOP;
+				-- We put in res the edge, cost and geometry of the path --
+				res := res || ARRAY[ARRAY[r.edge, r.cost, geometry]]::VARCHAR[];
+			END LOOP;
+			SELECT target INTO source_;
+		END LOOP;
+		RETURN res;
         END;
 $BODY$ 
 LANGUAGE 'plpgsql';
