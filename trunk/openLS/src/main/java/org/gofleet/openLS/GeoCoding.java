@@ -27,19 +27,19 @@ package org.gofleet.openLS;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
-import net.opengis.xls.GeocodeRequestType;
-import net.opengis.xls.GeocodeResponseType;
-import net.opengis.xls.ReverseGeocodeRequestType;
-import net.opengis.xls.ReverseGeocodeResponseType;
+import net.opengis.xls.v_1_2_0.GeocodeRequestType;
+import net.opengis.xls.v_1_2_0.GeocodeResponseType;
+import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
+import net.opengis.xls.v_1_2_0.ReverseGeocodeResponseType;
 
 public class GeoCoding {
 
-	public ReverseGeocodeResponseType reverseGeocoding(
+	protected static ReverseGeocodeResponseType reverseGeocoding(
 			ReverseGeocodeRequestType param) {
 		return null;
 	}
 
-	public GeocodeResponseType geocoding(GeocodeRequestType param) {
+	protected static GeocodeResponseType geocoding(GeocodeRequestType param) {
 		return null;
 	}
 
