@@ -212,23 +212,23 @@ CREATE OR REPLACE FUNCTION gls_generateDummy () RETURNS void AS $$
 	    --Routing example
 	    
 	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (1, ST_SetSRID(GeomFromText(\'LINESTRING(0 1,1 1)\'), 4326), ' ||
-	    		' 1, \'infinity\', 1, 2, 0, 1, 1, 1, 10, \'\');';
+	    		'VALUES (10, ST_SetSRID(GeomFromText(\'LINESTRING(0 1,1 1)\'), 4326), ' ||
+	    		' 10, \'infinity\', 1, 2, 0, 1, 1, 1, 10, \'\');';
 	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (2, ST_SetSRID(GeomFromText(\'LINESTRING(1 1,1 0)\'), 4326), ' ||
-	    		' 1, \'infinity\', 2, 3, 1, 1, 1, 0, 10, \'\');';
+	    		'VALUES (20, ST_SetSRID(GeomFromText(\'LINESTRING(1 1,1 0)\'), 4326), ' ||
+	    		' 20, \'infinity\', 2, 3, 1, 1, 1, 0, 10, \'\');';
 	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (3, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,0 0)\'), 4326), ' ||
-	    		' 1, \'infinity\', 3, 4, 1, 0, 0, 0, 10, \'\');';
+	    		'VALUES (30, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,0 0)\'), 4326), ' ||
+	    		' 30, \'infinity\', 3, 4, 1, 0, 0, 0, 10, \'\');';
 	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (4, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,0 1)\'), 4326), ' ||
-	    		' 1, \'infinity\', 3, 1, 1, 0, 0, 1, 10, \'\');';
+	    		'VALUES (40, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,0 1)\'), 4326), ' ||
+	    		' 40, \'infinity\', 3, 1, 1, 0, 0, 1, 10, \'\');';
 	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (5, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,2 0)\'), 4326), ' ||
-	    		' 1, 1, 3, 5, 1, 0, 2, 0, 10, \'\');';
+	    		'VALUES (50, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,2 0)\'), 4326), ' ||
+	    		' 50, 50, 1, 5, 1, 0, 2, 0, 10, \'\');';
 	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (6, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,2 0)\'), 4326), ' ||
-	    		' 3, 3, 3, 5, 0, 0, 2, 0, 10, \'\');';
+	    		'VALUES (60, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,2 0)\'), 4326), ' ||
+	    		' 60, 60, 4, 5, 0, 0, 2, 0, 10, \'\');';
 	    
     END;
   $$ LANGUAGE plpgsql VOLATILE;
