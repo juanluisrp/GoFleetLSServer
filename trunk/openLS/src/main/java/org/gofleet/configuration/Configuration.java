@@ -1,11 +1,10 @@
 package org.gofleet.configuration;
 
-import org.apache.commons.configuration.ConfigurationFactory;
 import org.apache.commons.logging.LogFactory;
 
 public class Configuration {
 
-	private static org.apache.commons.configuration.Configuration configuration = null;
+	private static Object configuration = null;
 	private static org.apache.commons.logging.Log log = LogFactory
 			.getLog(Configuration.class);
 
@@ -14,19 +13,19 @@ public class Configuration {
 
 	static {
 		try {
-			ConfigurationFactory factory = new ConfigurationFactory(
-					"config.xml");
-			configuration = factory.getConfiguration();
+			throw new Exception();
+			// ConfigurationFactory factory = new ConfigurationFactory();
+			// configuration = factory.getConfiguration();
 			// DatabaseConfiguration ddbbconfig = new DatabaseConfiguration(
 			// datasource, "table", "key", "value");
 		} catch (Throwable t) {
 			log.error("Error loading configuration: " + t);
 
-			configuration = new org.apache.commons.configuration.CombinedConfiguration();
+			configuration = new Object();
 		}
 	}
 
-	static public org.apache.commons.configuration.Configuration getConfiguration() {
+	static public Object getConfiguration() {
 		return configuration;
 	}
 }

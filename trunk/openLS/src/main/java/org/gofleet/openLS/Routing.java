@@ -27,12 +27,14 @@ package org.gofleet.openLS;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
-import net.opengis.xls.DetermineRouteRequestType;
-import net.opengis.xls.DetermineRouteResponseType;
+import net.opengis.xls.v_1_2_0.DetermineRouteRequestType;
+import net.opengis.xls.v_1_2_0.DetermineRouteResponseType;
 
 public class Routing {
 
-	public DetermineRouteResponseType routePlan(DetermineRouteRequestType param) {
-		return null;
+	protected static DetermineRouteResponseType routePlan(
+			DetermineRouteRequestType param) {
+		DetermineRouteResponseType res = new DetermineRouteResponseType();
+		return res;
 	}
 }
