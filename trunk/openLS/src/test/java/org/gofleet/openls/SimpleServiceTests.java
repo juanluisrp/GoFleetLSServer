@@ -21,25 +21,25 @@ public class SimpleServiceTests {
 	public void testEmptyRoute() throws AxisFault, FileNotFoundException,
 			JAXBException {
 		OpenLS openLS = new OpenLS();
-		openLS.openLS(convertObject2OMElement("determineRouteRequest.xml",
+		openLS.openLS(convertFile2OMElement("determineRouteRequest.xml",
 				XLSType.class));
 	}
 	@Test
 	public void testEmptyGeocoding() throws AxisFault, FileNotFoundException,
 			JAXBException {
 		OpenLS openLS = new OpenLS();
-		openLS.openLS(convertObject2OMElement("geocodingRequest.xml",
+		openLS.openLS(convertFile2OMElement("geocodingRequest.xml",
 				XLSType.class));
 	}
 	@Test
 	public void testEmptyReverseGeocoding() throws AxisFault, FileNotFoundException,
 			JAXBException {
 		OpenLS openLS = new OpenLS();
-		openLS.openLS(convertObject2OMElement("reverseGeocodingRequest.xml",
+		openLS.openLS(convertFile2OMElement("reverseGeocodingRequest.xml",
 				XLSType.class));
 	}
 
-	private OMElement convertObject2OMElement(String path, Class<?> classType)
+	private OMElement convertFile2OMElement(String path, Class<?> classType)
 			throws FileNotFoundException, JAXBException {
 		Unmarshaller m = JAXBContext.newInstance(classType)
 				.createUnmarshaller();

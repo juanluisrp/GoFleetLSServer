@@ -28,6 +28,7 @@ import org.apache.axiom.om.OMFactory;
 import org.apache.axiom.om.OMNamespace;
 import org.apache.axiom.om.impl.builder.SAXOMBuilder;
 import org.apache.axis2.AxisFault;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xmlbeans.impl.common.XmlReaderToWriter;
@@ -64,6 +65,20 @@ public class OpenLS {
 	private static Log LOG = LogFactory.getLog(OpenLS.class);
 
 	/**
+	 * method parameter names for routing
+	 */
+	private static String[] routing = { "routePlan", "routeRequest", "routing" };
+	/**
+	 * method parameter names for reverseGeocoding
+	 */
+	private static String[] reverseGeocoding = { "reverseGeocoding",
+			"DirectoryRequest" };
+	/**
+	 * method parameter names for geocoding
+	 */
+	private static String[] geocoding = { "geocoding", "GeocodeRequest" };
+
+	/**
 	 * Stupid test to see if the Server is alive.
 	 * 
 	 * @return
@@ -92,13 +107,12 @@ public class OpenLS {
 		String method = convertOMElement2Object(parameter);
 
 		AbstractResponseParametersType resultado = null;
-		// TODO standarize and shift/capital letters fix
-		if (method.equals("routePlan") || method.equals("RouteRequest"))
+
+		if (equals(routing, method))
 			resultado = routePlan(parameter);
-		else if (method.equals("reverseGeocoding")
-				|| method.equals("DirectoryRequest"))
+		else if (equals(reverseGeocoding, method))
 			resultado = reverseGeocoding(parameter);
-		else if (method.equals("geocoding") || method.equals("GeocodeRequest"))
+		else if (equals(geocoding, method))
 			resultado = geocoding(parameter);
 
 		if (resultado == null)
@@ -108,6 +122,25 @@ public class OpenLS {
 		return envelop(resultado);
 	}
 
+	/**
+	 * Check if rules contains method, ignoring case.
+	 * @param rules
+	 * @param method
+	 * @return
+	 */
+	private boolean equals(String[] rules, String method) {
+		for (String rule : rules)
+			if (StringUtils.equalsIgnoreCase(method, rule))
+				return true;
+		return false;
+	}
+
+	/**
+	 * Calls the routing method
+	 * @param parameter
+	 * @return
+	 * @throws AxisFault
+	 */
 	protected AbstractResponseParametersType routePlan(OMElement parameter)
 			throws AxisFault {
 		DetermineRouteRequestType param = (DetermineRouteRequestType) convertOMElement2Object(
@@ -115,6 +148,12 @@ public class OpenLS {
 		return Routing.routePlan(param);
 	}
 
+	/**
+	 * Calls the reverseGeocoding method
+	 * @param parameter
+	 * @return
+	 * @throws AxisFault
+	 */
 	protected AbstractResponseParametersType reverseGeocoding(
 			OMElement parameter) throws AxisFault {
 		ReverseGeocodeRequestType param = (ReverseGeocodeRequestType) convertOMElement2Object(
@@ -122,6 +161,12 @@ public class OpenLS {
 		return GeoCoding.reverseGeocoding(param);
 	}
 
+	/**
+	 * Calls the geocoding method
+	 * @param parameter
+	 * @return
+	 * @throws AxisFault
+	 */
 	protected AbstractResponseParametersType geocoding(OMElement parameter)
 			throws AxisFault {
 		GeocodeRequestType param = (GeocodeRequestType) convertOMElement2Object(
@@ -264,7 +309,7 @@ public class OpenLS {
 		JAXBElement<? extends AbstractHeaderType> header = null;
 
 		// TODO internacionalization
-		xlsType.setLang("es");
+		//xlsType.setLang("es");
 
 		xlsType.setBody(body);
 
