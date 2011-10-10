@@ -43,7 +43,6 @@ public class Routing {
 
 	public DetermineRouteResponseType routePlan(
 			DetermineRouteRequestType param) {
-		DetermineRouteResponseType res = new DetermineRouteResponseType();
-		return res;
+		return dao.routePlan(param);
 	}
 }
