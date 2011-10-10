@@ -4,6 +4,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Resource;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Marshaller;
@@ -32,7 +33,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xmlbeans.impl.common.XmlReaderToWriter;
+import org.gofleet.openLS.ddbb.GeoCoding;
+import org.gofleet.openLS.ddbb.Routing;
 import org.gofleet.openLS.opengis.XLS;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
 
 /*
  * Copyright (C) 2011, Emergya (http://www.emergya.es)
@@ -61,8 +66,16 @@ import org.gofleet.openLS.opengis.XLS;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
+@Controller
+@Scope("session")
 public class OpenLS {
 	private static Log LOG = LogFactory.getLog(OpenLS.class);
+
+	@Resource
+	private Routing routingController;
+
+	@Resource
+	private GeoCoding geoCodingController;
 
 	/**
 	 * method parameter names for routing
@@ -124,6 +137,7 @@ public class OpenLS {
 
 	/**
 	 * Check if rules contains method, ignoring case.
+	 * 
 	 * @param rules
 	 * @param method
 	 * @return
@@ -137,6 +151,7 @@ public class OpenLS {
 
 	/**
 	 * Calls the routing method
+	 * 
 	 * @param parameter
 	 * @return
 	 * @throws AxisFault
@@ -145,11 +160,12 @@ public class OpenLS {
 			throws AxisFault {
 		DetermineRouteRequestType param = (DetermineRouteRequestType) convertOMElement2Object(
 				parameter, DetermineRouteRequestType.class);
-		return Routing.routePlan(param);
+		return routingController.routePlan(param);
 	}
 
 	/**
 	 * Calls the reverseGeocoding method
+	 * 
 	 * @param parameter
 	 * @return
 	 * @throws AxisFault
@@ -158,11 +174,12 @@ public class OpenLS {
 			OMElement parameter) throws AxisFault {
 		ReverseGeocodeRequestType param = (ReverseGeocodeRequestType) convertOMElement2Object(
 				parameter, ReverseGeocodeRequestType.class);
-		return GeoCoding.reverseGeocoding(param);
+		return geoCodingController.reverseGeocoding(param);
 	}
 
 	/**
 	 * Calls the geocoding method
+	 * 
 	 * @param parameter
 	 * @return
 	 * @throws AxisFault
@@ -171,7 +188,7 @@ public class OpenLS {
 			throws AxisFault {
 		GeocodeRequestType param = (GeocodeRequestType) convertOMElement2Object(
 				parameter, GeocodeRequestType.class);
-		return GeoCoding.geocoding(param);
+		return geoCodingController.geocoding(param);
 	}
 
 	/**
@@ -309,7 +326,7 @@ public class OpenLS {
 		JAXBElement<? extends AbstractHeaderType> header = null;
 
 		// TODO internacionalization
-		//xlsType.setLang("es");
+		// xlsType.setLang("es");
 
 		xlsType.setBody(body);
 

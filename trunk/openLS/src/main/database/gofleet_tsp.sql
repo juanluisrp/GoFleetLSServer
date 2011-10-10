@@ -1,8 +1,8 @@
-﻿DROP FUNCTION IF EXISTS gofleet_tsp(TEXT, INTEGER[], TEXT, INTEGER) CASCADE;
-DROP FUNCTION IF EXISTS gofleet_tsp_next(TEXT, INTEGER[], TEXT, INTEGER, INTEGER[]) CASCADE;
+DROP FUNCTION IF EXISTS gls_tsp_next(TEXT, INTEGER[], TEXT, INTEGER, INTEGER[]);
+DROP FUNCTION if exists gls_tsp(text, integer[], text, integer);
 
 /* Function to find the nearest path */
-CREATE FUNCTION gofleet_tsp_next(routingTable TEXT, stopTable INTEGER[], gid TEXT, source INTEGER, routingRes INTEGER[])
+CREATE FUNCTION gls_tsp_next(routingTable TEXT, stopTable INTEGER[], gid TEXT, source INTEGER, routingRes INTEGER[])
 RETURNS INTEGER AS 
 $BODY$
 DECLARE
@@ -15,7 +15,7 @@ DECLARE
 	temporalCost NUMERIC;
 	res INTEGER;
         BEGIN
-            RAISE INFO 'gofleet_tsp_next(%, %, %, %)', routingTable, stopTable, gid, source; 
+            RAISE INFO 'gls_tsp_next(%, %, %, %)', routingTable, stopTable, gid, source; 
 	    BEGIN
 		i := 1;
 		-- For each "i" between lower limit and upper limit of array: --
@@ -73,7 +73,7 @@ LANGUAGE 'plpgsql';
 --The points table contains IDs from the routing table 
 --where we need to stop
 --Routing table contains all the pgrouting data
-CREATE FUNCTION gofleet_tsp(routingTable TEXT, stopTable INTEGER[], gid TEXT, source INTEGER)
+CREATE FUNCTION gls_tsp(routingTable TEXT, stopTable INTEGER[], gid TEXT, source INTEGER)
 RETURNS TEXT[][] AS 
 $BODY$
 DECLARE
@@ -88,11 +88,11 @@ DECLARE
 	res CHARACTER VARYING[][]:='{}';
 	geometry CHARACTER VARYING;
         BEGIN
-		RAISE INFO 'gofleet_tsp(%, %, %, %)', routingTable, stopTable, gid, source; 
+		RAISE INFO 'gls_tsp(%, %, %, %)', routingTable, stopTable, gid, source; 
 		source_ := source;	
 		WHILE NOT(stopTable <@ routingRes) LOOP
 			-- we put in target the next nearest element --
-			SELECT * INTO target FROM gofleet_tsp_next(routingTable, stopTable, gid, source_, routingRes);
+			SELECT * INTO target FROM gls_tsp_next(routingTable, stopTable, gid, source_, routingRes);
 			FOR r in SELECT edge_id as edge, "cost" as cost
 				from shortest_path_shooting_star('SELECT ' || gid || ' as id,
 							source, 
@@ -107,7 +107,7 @@ DECLARE
 							to_cost FROM ' || routingTable, source_, target, true, true) LOOP
 				-- We update routingRes --
 				routingRes := routingRes || r.edge;
-				FOR g IN EXECUTE ('SELECT st_asText(the_geom) as the_geom FROM '||routingTable|| ' where '||r.edge||' = '||routingTable||'.gid') LOOP
+				FOR g IN EXECUTE ('SELECT st_asText(the_geom) as the_geom FROM '||routingTable|| ' where '||r.edge||' = '||routingTable||'.' || gid) LOOP
 					geometry:= g.the_geom;
 				END LOOP;
 				-- We put in res the edge, cost and geometry of the path --

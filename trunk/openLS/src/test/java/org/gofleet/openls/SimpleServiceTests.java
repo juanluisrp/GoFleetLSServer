@@ -14,27 +14,35 @@ import org.apache.axiom.om.impl.builder.SAXOMBuilder;
 import org.apache.axis2.AxisFault;
 import org.gofleet.openLS.OpenLS;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = { "classpath:applicationContext.xml" })
 public class SimpleServiceTests {
+
+	@Autowired
+	OpenLS openLS;
 
 	@Test
 	public void testEmptyRoute() throws AxisFault, FileNotFoundException,
 			JAXBException {
-		OpenLS openLS = new OpenLS();
 		openLS.openLS(convertFile2OMElement("determineRouteRequest.xml",
 				XLSType.class));
 	}
+
 	@Test
 	public void testEmptyGeocoding() throws AxisFault, FileNotFoundException,
 			JAXBException {
-		OpenLS openLS = new OpenLS();
 		openLS.openLS(convertFile2OMElement("geocodingRequest.xml",
 				XLSType.class));
 	}
+
 	@Test
-	public void testEmptyReverseGeocoding() throws AxisFault, FileNotFoundException,
-			JAXBException {
-		OpenLS openLS = new OpenLS();
+	public void testEmptyReverseGeocoding() throws AxisFault,
+			FileNotFoundException, JAXBException {
 		openLS.openLS(convertFile2OMElement("reverseGeocodingRequest.xml",
 				XLSType.class));
 	}

@@ -9,29 +9,75 @@
 			http://www.springframework.org/schema/tx
 			http://www.springframework.org/schema/tx/spring-tx-3.0.xsd"
 	default-lazy-init="true">
-	
-	<context:annotation-config />
-	
-	<tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true" />
 
-	<context:component-scan base-package="org.gofleet.bbdd.dao" />
+	<context:annotation-config />
+
+	<tx:annotation-driven transaction-manager="transactionManager"
+		proxy-target-class="true" />
+	<context:annotation-config />
+	<context:component-scan base-package="org.gofleet.openLS.ddbb.dao" />
+	<context:component-scan base-package="org.gofleet.openLS.ddbb.bean" />
+	<context:component-scan base-package="org.gofleet.openLS.ddbb" />
 	<context:component-scan base-package="org.gofleet.openLS" />
-	
-	<!-- Estadísticas -->
-	<bean id="jmxExporter" class="org.springframework.jmx.export.MBeanExporter">
-		<property name="beans">
-			<map>
-				<entry key="Hibernate:name=statistics">
-					<ref local="statisticsBean" />
-				</entry>
-			</map>
+
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:jdbc.properties</value>
+			</list>
 		</property>
 	</bean>
 
-	<bean id="statisticsBean" class="org.hibernate.jmx.StatisticsService">
-		<property name="statisticsEnabled">
-			<value>true</value>
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass" value="${jdbc.driverClassName}" />
+		<property name="jdbcUrl" value="${jdbc.url}" />
+		<property name="user" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+
+		<property name="acquireIncrement" value="3" />
+		<property name="minPoolSize" value="2" />
+		<property name="maxPoolSize" value="15" />
+		<property name="maxIdleTime" value="5" />
+		<property name="numHelperThreads" value="5" />
+
+		<property name="idleConnectionTestPeriod" value="10" />
+		<property name="autoCommitOnClose" value="false" />
+		<property name="preferredTestQuery" value="select 1;" />
+		<property name="testConnectionOnCheckin" value="true" />
+
+		<property name="checkoutTimeout" value="60000" />
+	</bean>
+
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+		<property name="dataSource">
+			<ref bean="dataSource" />
 		</property>
+		<property name="packagesToScan" value="org.gofleet.openLS.ddbb.bean" />
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">${jdbc.hibernate.dialect}</prop>
+				<prop key="hibernate.show_sql">false</prop>
+			</props>
+		</property>
+	</bean>
+
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate3.HibernateTransactionManager">
 		<property name="sessionFactory" ref="sessionFactory" />
 	</bean>
-</beans>
+
+
+
+	<!-- Application Beans -->
+	<bean id="openLS" class="org.gofleet.openLS.OpenLS">
+	</bean>
+	<bean id="routingDAO" class="org.gofleet.openLS.ddbb.dao.RoutingDAO">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	<bean id="routing" class="org.gofleet.openLS.ddbb.Routing">
+	</bean>
+	<bean id="geocoding" class="org.gofleet.openLS.ddbb.GeoCoding">
+	</bean>
+</beans>  

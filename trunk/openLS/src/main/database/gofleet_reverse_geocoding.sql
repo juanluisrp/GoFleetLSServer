@@ -1,4 +1,4 @@
-﻿DROP FUNCTION IF EXISTS gofleet_reverse_geocoding(TEXT) CASCADE;
+﻿DROP FUNCTION IF EXISTS gls_reverse_geocoding(TEXT) CASCADE;
 DROP TYPE IF EXISTS reverse_type;
 
 /* Create an especific type to return */
@@ -16,7 +16,7 @@ CREATE TYPE reverse_type AS (
 );
 
 /* Function to find an address */
-CREATE FUNCTION gofleet_reverse_geocoding(geometry TEXT)
+CREATE FUNCTION gls_reverse_geocoding(geometry TEXT)
 RETURNS reverse_type AS
 $BODY$
 DECLARE
