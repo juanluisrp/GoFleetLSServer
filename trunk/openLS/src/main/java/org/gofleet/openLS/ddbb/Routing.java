@@ -1,4 +1,4 @@
-package org.gofleet.openLS;
+package org.gofleet.openLS.ddbb;
 
 /*
  * Copyright (C) 2011, Emergya (http://www.emergya.es)
@@ -27,12 +27,21 @@ package org.gofleet.openLS;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
+import javax.annotation.Resource;
+
 import net.opengis.xls.v_1_2_0.DetermineRouteRequestType;
 import net.opengis.xls.v_1_2_0.DetermineRouteResponseType;
 
+import org.gofleet.openLS.ddbb.dao.RoutingDAO;
+import org.springframework.stereotype.Service;
+
+@Service
 public class Routing {
 
-	protected static DetermineRouteResponseType routePlan(
+	@Resource
+	private RoutingDAO dao;
+
+	public DetermineRouteResponseType routePlan(
 			DetermineRouteRequestType param) {
 		DetermineRouteResponseType res = new DetermineRouteResponseType();
 		return res;

@@ -1,4 +1,4 @@
-package org.gofleet.openLS;
+package org.gofleet.openLS.ddbb;
 
 /*
  * Copyright (C) 2011, Emergya (http://www.emergya.es)
@@ -27,19 +27,22 @@ package org.gofleet.openLS;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
+import javax.annotation.Resource;
+
 import net.opengis.xls.v_1_2_0.GeocodeRequestType;
 import net.opengis.xls.v_1_2_0.GeocodeResponseType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeResponseType;
 
+@Resource
 public class GeoCoding {
 
-	protected static ReverseGeocodeResponseType reverseGeocoding(
+	public ReverseGeocodeResponseType reverseGeocoding(
 			ReverseGeocodeRequestType param) {
 		return null;
 	}
 
-	protected static GeocodeResponseType geocoding(GeocodeRequestType param) {
+	public GeocodeResponseType geocoding(GeocodeRequestType param) {
 		return null;
 	}
 

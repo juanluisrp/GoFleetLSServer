@@ -41,11 +41,12 @@ SET escape_string_warning = off;
 \echo 'Dropping and re-generating tables with dummy data'
 DROP TABLE IF EXISTS configuration;
 CREATE TABLE configuration (
-    identificador character varying(20) NOT NULL,
+    id character varying(20) NOT NULL,
     valor character varying,
     updatable boolean DEFAULT false NOT NULL
 );
 COMMENT ON TABLE configuration IS 'Configuration Table';
+ALTER TABLE configuration ADD PRIMARY KEY (id);
 
 --Routing tables
 
@@ -65,6 +66,7 @@ CREATE TABLE routing_template (
     rule text
 );
 SELECT AddGeometryColumn ('routing_template','geometry',4326, 'LINESTRING',2);
+ALTER TABLE routing_template ADD PRIMARY KEY (id);
 
 -- Tables
 
@@ -74,6 +76,7 @@ CREATE TABLE country_template (
     name character varying(3) NOT NULL
 );
 SELECT AddGeometryColumn ('country_template','geometry',4326, 'MULTIPOLYGON',2);
+ALTER TABLE country_template ADD PRIMARY KEY (id);
 
 DROP TABLE IF EXISTS country_subdivision_template;
 CREATE TABLE country_subdivision_template (
@@ -81,6 +84,7 @@ CREATE TABLE country_subdivision_template (
     name character varying NOT NULL
 );
 SELECT AddGeometryColumn ('country_subdivision_template','geometry',4326, 'MULTIPOLYGON',2);
+ALTER TABLE country_subdivision_template ADD PRIMARY KEY (id);
 
 DROP TABLE IF EXISTS municipality_template;
 CREATE TABLE municipality_template (
@@ -88,6 +92,7 @@ CREATE TABLE municipality_template (
     name character varying NOT NULL
 );
 SELECT AddGeometryColumn ('municipality_template','geometry',4326, 'MULTIPOLYGON',2);
+ALTER TABLE municipality_template ADD PRIMARY KEY (id);
 
 DROP TABLE IF EXISTS municipality_subdivision_template;
 CREATE TABLE municipality_subdivision_template (
@@ -95,6 +100,7 @@ CREATE TABLE municipality_subdivision_template (
     name character varying NOT NULL
 );
 SELECT AddGeometryColumn ('municipality_subdivision_template','geometry',4326, 'MULTIPOLYGON',2);
+ALTER TABLE municipality_subdivision_template ADD PRIMARY KEY (id);
 
 DROP TABLE IF EXISTS street_template;
 CREATE TABLE street_template (
@@ -102,6 +108,7 @@ CREATE TABLE street_template (
     name character varying NOT NULL
 );
 SELECT AddGeometryColumn ('street_template','geometry',4326, 'LINESTRING',2);
+ALTER TABLE street_template ADD PRIMARY KEY (id);
 
 DROP TABLE IF EXISTS poi_template;
 CREATE TABLE poi_template (
@@ -109,6 +116,7 @@ CREATE TABLE poi_template (
     name character varying
 );
 SELECT AddGeometryColumn ('poi_template','geometry',4326, 'POINT',2);
+ALTER TABLE poi_template ADD PRIMARY KEY (id);
 
 DROP TABLE IF EXISTS postal_code_template;
 CREATE TABLE postal_code_template (
@@ -117,6 +125,7 @@ CREATE TABLE postal_code_template (
     type character varying
 );
 SELECT AddGeometryColumn ('postal_code_template','geometry',4326, 'MULTIPOLYGON',2);
+ALTER TABLE postal_code_template ADD PRIMARY KEY (id);
 
 DROP TABLE IF EXISTS advanced_poi_template;
 CREATE TABLE advanced_poi_template (
@@ -125,6 +134,7 @@ CREATE TABLE advanced_poi_template (
     value character varying NOT NULL,
     poi bigint NOT NULL
 );
+ALTER TABLE advanced_poi_template ADD PRIMARY KEY (id);
 
 \echo 'GofleetLS database created'
 

@@ -117,11 +117,8 @@
 			<artifactId>axis2</artifactId>
 			<version>${axis2ReleaseVersion}</version>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.axis2</groupId>
-			<artifactId>axis2-spring</artifactId>
-			<version>${axis2ReleaseVersion}</version>
-		</dependency>
+		<!-- <dependency> <groupId>org.apache.axis2</groupId> <artifactId>axis2-spring</artifactId> 
+			<version>${axis2ReleaseVersion}</version> </dependency> -->
 		<dependency>
 			<groupId>org.apache.axis2</groupId>
 			<artifactId>axis2-transport-http</artifactId>
@@ -181,7 +178,7 @@
 			<version>2.2.4</version>
 		</dependency>
 
-		<!-- database dependencies -->
+		<!-- postgis -->
 		<dependency>
 			<groupId>${jdbc.groupId}</groupId>
 			<artifactId>${jdbc.artifactId}</artifactId>
@@ -202,34 +199,53 @@
 			<groupId>org.hibernatespatial</groupId>
 			<artifactId>hibernate-spatial-${gisProvider}</artifactId>
 			<version>${hibernateSpatial.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.hibernate</groupId>
-					<artifactId>hibernate</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.hibernate</groupId>
-					<artifactId>hibernate-core</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
+		<dependency>
+			<groupId>org.hibernatespatial</groupId>
+			<artifactId>hibernate-spatial</artifactId>
+			<version>${hibernateSpatial.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-entitymanager</artifactId>
+			<version>${hibernate.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.vividsolutions</groupId>
+			<artifactId>jts</artifactId>
+			<version>1.12</version>
+		</dependency>
+
+		<!-- c3p0 -->
 		<dependency>
 			<groupId>c3p0</groupId>
 			<artifactId>c3p0</artifactId>
-			<version>0.9.1.2</version>
+			<version>${c3p0.version}</version>
 		</dependency>
-		<!-- <dependency> <groupId>org.appfuse</groupId> <artifactId>appfuse-service</artifactId> 
-			<version>${appfuse.version}</version> </dependency> -->
 
 		<!-- spring -->
-		<!-- <dependency> <groupId>org.springframework</groupId> <artifactId>spring-core</artifactId> 
-			<version>${spring.version}</version> </dependency> <dependency> <groupId>org.springframework</groupId> 
-			<artifactId>spring-tx</artifactId> <version>${spring.version}</version> </dependency> 
-			<dependency> <groupId>org.springframework</groupId> <artifactId>spring-web</artifactId> 
-			<version>${spring.version}</version> </dependency> <dependency> <groupId>org.springframework</groupId> 
-			<artifactId>spring-context</artifactId> <version>${spring.version}</version> 
-			</dependency> <dependency> <groupId>org.springframework</groupId> <artifactId>spring-beans</artifactId> 
-			<version>${spring.version}</version> </dependency> -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-orm</artifactId>
+			<version>${spring.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-tx</artifactId>
+			<version>${spring.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+			<version>${spring.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>javax.annotation</groupId>
+			<artifactId>jsr250-api</artifactId>
+			<version>1.0</version>
+		</dependency>
+
+		<!-- Others -->
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
@@ -237,8 +253,8 @@
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>1.6.1</version>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.5.8</version>
 		</dependency>
 		<dependency>
 			<groupId>cglib</groupId>
@@ -276,20 +292,21 @@
 	</pluginRepositories>
 
 	<properties>
+		<!-- version -->
 		<axis2ReleaseVersion>1.6.1</axis2ReleaseVersion>
-		<rampartReleaseVersion>1.4.1</rampartReleaseVersion>
-		<spring.version>3.0.5.RELEASE</spring.version>
+		<spring.version>3.0.6.RELEASE</spring.version>
+		<jdbc.version>9.0-801.jdbc4</jdbc.version>
+		<hibernateSpatial.version>1.1</hibernateSpatial.version>
+		<hibernate.version>3.5.6-Final</hibernate.version>
+		<c3p0.version>0.9.1.2</c3p0.version>
 
 		<!-- Database settings -->
 		<dbunit.dataTypeFactoryName>org.dbunit.dataset.datatype.DefaultDataTypeFactory</dbunit.dataTypeFactoryName>
 		<dbunit.operation.type>CLEAN_INSERT</dbunit.operation.type>
 		<jdbc.groupId>postgresql</jdbc.groupId>
 		<jdbc.artifactId>postgresql</jdbc.artifactId>
-		<jdbc.version>9.0-801.jdbc4</jdbc.version>
 		<gisProvider>postgis</gisProvider>
-		<hibernateSpatial.version>1.1</hibernateSpatial.version>
 		<default.long.encoding>UTF-8</default.long.encoding>
 		<default.encoding>UTF-8</default.encoding>
-		<appfuse.version>2.1.0</appfuse.version>
 	</properties>
 </project>
