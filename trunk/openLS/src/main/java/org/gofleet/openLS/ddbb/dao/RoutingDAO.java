@@ -30,6 +30,7 @@ package org.gofleet.openLS.ddbb.dao;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
@@ -62,6 +63,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.gofleet.openLS.ddbb.GeoCoding;
 import org.hibernate.HibernateException;
+import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.postgresql.jdbc4.Jdbc4Array;
@@ -75,6 +77,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import com.vividsolutions.jts.io.WKTReader;
 
@@ -100,6 +103,40 @@ public class RoutingDAO {
 	@Autowired
 	public void setSessionFactory(SessionFactory sessionFactory) {
 		hibernateTemplate = new HibernateTemplate(sessionFactory);
+	}
+
+	/**
+	 * Devuelve el id del vértice más cercano, calculado según la tabla de
+	 * routing.
+	 * 
+	 * @param p
+	 * @param end
+	 * @return
+	 */
+	@Transactional(readOnly = true)
+	private BigInteger getVertex(final Point p, final boolean end) {
+		LOG.trace("getVertex(" + p + ", " + end + ")");
+		HibernateCallback<BigInteger> action = new HibernateCallback<BigInteger>() {
+
+			public BigInteger doInHibernate(Session session)
+					throws HibernateException, SQLException {
+				String point = "Start";
+				if (end) {
+					point = "End";
+				}
+
+				Query q = session.createQuery("select " + GID_ROUTING
+						+ " from " + TABLE_ROUTING
+						+ " order by ST_Distance(ST_SETSRID(ST_POINT(ST_X(ST_"
+						+ point + "Point(geometry)),ST_Y(ST_" + point
+						+ "Point(geometry))), " + EPSG_4326 + ")"
+						+ ",ST_SETSRID(?, " + EPSG_4326 + ")) asc");
+				q.setParameter(0, p);
+				q.setMaxResults(1);
+				return (BigInteger) q.uniqueResult();
+			}
+		};
+		return hibernateTemplate.executeWithNativeSession(action);
 	}
 
 	@Transactional(readOnly = true)
@@ -143,8 +180,8 @@ public class RoutingDAO {
 				List<Integer> stops = new ArrayList<Integer>();
 				for (WayPointType wayPoint : wayPointList.getViaPoint())
 					stops.add(20);
-				
-				//TODO
+
+				// TODO
 
 				Array stopTable = session.connection().createArrayOf("int4",
 						stops.toArray(new Integer[] {}));
