@@ -29,21 +29,27 @@ public class SimpleServiceTests {
 	@Test
 	public void testEmptyRoute() throws AxisFault, FileNotFoundException,
 			JAXBException {
-		openLS.openLS(convertFile2OMElement("determineRouteRequest.xml",
+		openLS.openLS(convertFile2OMElement("/determineRouteRequest.xml",
 				XLSType.class));
 	}
 
 	@Test
 	public void testEmptyGeocoding() throws AxisFault, FileNotFoundException,
 			JAXBException {
-		openLS.openLS(convertFile2OMElement("geocodingRequest.xml",
+		openLS.openLS(convertFile2OMElement("/geocodingRequest.xml",
 				XLSType.class));
+	}
+
+	@Test
+	public void testEmptyDirectory() throws AxisFault, FileNotFoundException,
+			JAXBException {
+		openLS.openLS(convertFile2OMElement("/directory.xml", XLSType.class));
 	}
 
 	@Test
 	public void testEmptyReverseGeocoding() throws AxisFault,
 			FileNotFoundException, JAXBException {
-		openLS.openLS(convertFile2OMElement("reverseGeocodingRequest.xml",
+		openLS.openLS(convertFile2OMElement("/reverseGeocoding.xml",
 				XLSType.class));
 	}
 
@@ -52,8 +58,7 @@ public class SimpleServiceTests {
 		Unmarshaller m = JAXBContext.newInstance(classType)
 				.createUnmarshaller();
 		SAXOMBuilder builder = new SAXOMBuilder();
-		Object tmp = m.unmarshal(this.getClass().getResourceAsStream(
-				"/determineRouteRequest.xml"));
+		Object tmp = m.unmarshal(this.getClass().getResourceAsStream(path));
 
 		Marshaller mar = JAXBContext.newInstance(classType).createMarshaller();
 		mar.marshal(tmp, builder);

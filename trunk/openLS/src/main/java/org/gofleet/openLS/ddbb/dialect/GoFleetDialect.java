@@ -1,9 +1,7 @@
-package org.gofleet.openLS.ddbb;
-
 /*
  * Copyright (C) 2011, Emergya (http://www.emergya.es)
  *
- * @author <a href="mailto:marias@emergya.es">María Arias</a>
+ * @author <a href="mailto:marias@emergya.com">María Arias</a>
  *
  * This file is part of GoFleet
  *
@@ -27,45 +25,30 @@ package org.gofleet.openLS.ddbb;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
-import javax.annotation.Resource;
+package org.gofleet.openLS.ddbb.dialect;
 
-import org.apache.commons.lang3.StringUtils;
+import org.hibernate.dialect.function.StandardSQLFunction;
+import org.hibernate.type.StandardBasicTypes;
+import org.hibernatespatial.postgis.PostgisDialect;
 
-import net.opengis.xls.v_1_2_0.DirectoryRequestType;
-import net.opengis.xls.v_1_2_0.DirectoryResponseType;
-import net.opengis.xls.v_1_2_0.GeocodeRequestType;
-import net.opengis.xls.v_1_2_0.GeocodeResponseType;
-import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
-import net.opengis.xls.v_1_2_0.ReverseGeocodeResponseType;
+/**
+ * 
+ * This dialect inherits from {@link PostgisDialect} and adds our own gls_* functions
+ * 
+ * @author marias
+ * 
+ */
+public class GoFleetDialect extends PostgisDialect {
 
-@Resource
-public class GeoCoding {
+	private static final long serialVersionUID = -2978866125590491127L;
 
-	public DirectoryResponseType directory(DirectoryRequestType param) {
-		return new DirectoryResponseType();
+	@Override
+    protected void registerTypesAndFunctions() {
+		super.registerTypesAndFunctions();
+
+		//TODO in fact this should be a two dimensional array
+        registerFunction("tsp", new StandardSQLFunction("gls_tsp",
+                StandardBasicTypes.CHAR_ARRAY));
 	}
-
-	public ReverseGeocodeResponseType reverseGeocode(
-			ReverseGeocodeRequestType param) {
-		return new ReverseGeocodeResponseType();
-	}
-
-	public GeocodeResponseType geocoding(GeocodeRequestType param) {
-		return new GeocodeResponseType();
-	}
-
-	/**
-	 * Check if rules contains method, ignoring case.
-	 * 
-	 * @param rules
-	 * @param method
-	 * @return
-	 */
-	public boolean equals(String[] rules, String method) {
-		for (String rule : rules)
-			if (StringUtils.equalsIgnoreCase(method, rule))
-				return true;
-		return false;
-	}
-
+	
 }

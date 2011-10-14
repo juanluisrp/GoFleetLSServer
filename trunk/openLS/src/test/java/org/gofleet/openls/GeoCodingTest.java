@@ -1,4 +1,4 @@
-package org.gofleet.openLS;
+package org.gofleet.openls;
 
 /*
  * Copyright (C) 2011, Emergya (http://www.emergya.es)
@@ -84,7 +84,7 @@ public class GeoCodingTest {
 		assertNotNull(param);
 
 		// Servicio de geocoding al que se le introduce los parametros
-		ReverseGeocodeResponseType res = geocoding.reverseGeocoding(param);
+		ReverseGeocodeResponseType res = geocoding.reverseGeocode(param);
 		assertNotNull(res);
 
 		List<ReverseGeocodedLocationType> res_array = res
