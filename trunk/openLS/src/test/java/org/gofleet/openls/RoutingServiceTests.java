@@ -12,6 +12,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLStreamException;
 
+import net.opengis.gml.v_3_1_1.DirectPositionType;
 import net.opengis.xls.v_1_2_0.AbstractBodyType;
 import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
 import net.opengis.xls.v_1_2_0.DetermineRouteResponseType;
@@ -101,8 +102,28 @@ public class RoutingServiceTests {
 		assertNotNull("There should be a linestring",
 				routeGeometry.getLineString());
 
-		// assertNotNull("There should be a list of positions", routeGeometry
-		// .getLineString().getPosList());
+		List<JAXBElement<?>> posOrPointPropertyOrPointRep = routeGeometry
+				.getLineString().getPosOrPointPropertyOrPointRep();
+
+		assertNotNull("There should be a list of positions",
+				posOrPointPropertyOrPointRep);
+
+		assertEquals("I was expecting four points",
+				posOrPointPropertyOrPointRep.size(), 4);
+
+		for (JAXBElement<?> element : posOrPointPropertyOrPointRep) {
+			assertNotNull(element);
+			o = element.getValue();
+			assertNotNull(o);
+			assertTrue(o instanceof DirectPositionType);
+			DirectPositionType dpt = new DirectPositionType();
+			// assertTrue(dpt.getSrsName().indexOf("4326") > 0);
+			assertEquals("Are we working on " + dpt.getValue().size()
+					+ " dimensions?" + dpt, dpt.getValue().size(), 2);
+
+			for (Double d : dpt.getValue())
+				assertNotNull(d);
+		}
 
 	}
 }
