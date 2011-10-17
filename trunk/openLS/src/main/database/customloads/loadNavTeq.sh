@@ -15,7 +15,7 @@ cd $SHP_PATH;
 
 for f in *.shp
 do
-	shp2pgsql -c -s 4326 -i -I -N skip -D $f | psql -U $USERNAME $DATABASE -h $HOST -p $PORT
+	shp2pgsql -W Latin1 -c -s 4326 -I -N skip $f | psql -U $USERNAME $DATABASE -h $HOST -p $PORT
 done;
 
 cd $HERE;
