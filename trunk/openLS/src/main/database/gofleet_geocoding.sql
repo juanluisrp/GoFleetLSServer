@@ -40,9 +40,8 @@ BEGIN
 			municipality as m,
 			country_subdivision as cs,
 			country as c,
-			(SELECT geometry, id FROM replace_table) as resultado 
-			WHERE st_distance(replaceme.geometry, resultado.geometry) = 0
-			and replaceme.id = resultado.id';
+			replace_table as resultado 
+			WHERE replaceme.id = resultado.id';
 
 	/* Check the street's name */
 	IF(address_geocoding.street IS NOT NULL) THEN
@@ -101,6 +100,14 @@ BEGIN
 		select replace(query, 'replaceme', 'c') INTO query;
 		RAISE INFO 'Consulta: %', query;
 	END IF;	
+
+	query :=  query || ' AND st_distance(ms.geometry, resultado.geometry) = 0
+			AND st_distance(m.geometry, resultado.geometry) = 0
+			AND st_distance(cs.geometry, resultado.geometry) = 0
+			AND st_distance(c.geometry, resultado.geometry) = 0
+			AND st_distance(s.geometry, resultado.geometry) = 0 
+			order by st_area(m.geometry) asc limit 1';	
+	RAISE INFO 'Consulta: %', query;
 	
 	FOR rec IN EXECUTE(query) LOOP
 	/* Add the results to the type to return */
