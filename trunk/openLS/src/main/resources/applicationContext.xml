@@ -75,6 +75,9 @@
 	<bean id="routingDAO" class="org.gofleet.openLS.ddbb.dao.RoutingDAO">
 		<property name="sessionFactory" ref="sessionFactory" />
 	</bean>
+	<bean id="geoCodingDAO" class="org.gofleet.openLS.ddbb.dao.GeoCodingDAO">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
 	<bean id="routing" class="org.gofleet.openLS.ddbb.Routing">
 	</bean>
 	<bean id="geocoding" class="org.gofleet.openLS.ddbb.GeoCoding">

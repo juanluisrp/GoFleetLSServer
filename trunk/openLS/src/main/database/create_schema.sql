@@ -53,7 +53,7 @@ ALTER TABLE configuration ADD PRIMARY KEY (id);
 DROP TABLE IF EXISTS routing_template;
 CREATE TABLE routing_template (
     id serial,
-    the_geom geometry NOT NULL,
+    gid bigint DEFAULT (-1),
     cost double precision DEFAULT (-1) NOT NULL,
     reverse_cost double precision DEFAULT (-1) NOT NULL,
 	source integer NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE routing_template (
     rule text
 );
 SELECT AddGeometryColumn ('routing_template','geometry',4326, 'LINESTRING',2);
-ALTER TABLE routing_template ADD PRIMARY KEY (id);
+ALTER TABLE routing_template ADD PRIMARY KEY (gid);
 
 -- Tables
 
@@ -221,23 +221,23 @@ CREATE OR REPLACE FUNCTION gls_generateDummy () RETURNS void AS $$
 	    		
 	    --Routing example
 	    
-	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (10, ST_SetSRID(GeomFromText(\'LINESTRING(0 1,1 1)\'), 4326), ' ||
+	    EXECUTE 'INSERT INTO routing_' || suffix || ' (gid, id, geometry, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
+	    		'VALUES (-1, 10, ST_SetSRID(GeomFromText(\'LINESTRING(0 1,1 1)\'), 4326), ' ||
 	    		' 10, \'infinity\', 1, 2, 0, 1, 1, 1, 10, \'\');';
-	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (20, ST_SetSRID(GeomFromText(\'LINESTRING(1 1,1 0)\'), 4326), ' ||
+	    EXECUTE 'INSERT INTO routing_' || suffix || ' (gid, id, geometry, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
+	    		'VALUES (-1, 20, ST_SetSRID(GeomFromText(\'LINESTRING(1 1,1 0)\'), 4326), ' ||
 	    		' 20, \'infinity\', 2, 3, 1, 1, 1, 0, 10, \'\');';
-	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (30, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,0 0)\'), 4326), ' ||
+	    EXECUTE 'INSERT INTO routing_' || suffix || ' (gid, id, geometry, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
+	    		'VALUES (-1, 30, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,0 0)\'), 4326), ' ||
 	    		' 30, \'infinity\', 3, 4, 1, 0, 0, 0, 10, \'\');';
-	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (40, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,0 1)\'), 4326), ' ||
+	    EXECUTE 'INSERT INTO routing_' || suffix || ' (gid, id, geometry, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
+	    		'VALUES (-1, 40, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,0 1)\'), 4326), ' ||
 	    		' 40, \'infinity\', 3, 1, 1, 0, 0, 1, 10, \'\');';
-	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (50, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,2 0)\'), 4326), ' ||
+	    EXECUTE 'INSERT INTO routing_' || suffix || ' (gid, id, geometry, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
+	    		'VALUES (-1, 50, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,2 0)\'), 4326), ' ||
 	    		' 50, 50, 1, 5, 1, 0, 2, 0, 10, \'\');';
-	    EXECUTE 'INSERT INTO routing_' || suffix || ' (id, the_geom, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
-	    		'VALUES (60, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,2 0)\'), 4326), ' ||
+	    EXECUTE 'INSERT INTO routing_' || suffix || ' (gid, id, geometry, cost, reverse_cost, source, target, x1, y1, x2, y2, to_cost, rule) ' ||
+	    		'VALUES (-1, 60, ST_SetSRID(GeomFromText(\'LINESTRING(1 0,2 0)\'), 4326), ' ||
 	    		' 60, 60, 4, 5, 0, 0, 2, 0, 10, \'\');';
 	    
     END;

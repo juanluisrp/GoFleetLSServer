@@ -39,33 +39,49 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.annotation.Resource;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 
 import net.opengis.gml.v_3_1_1.CoordinatesType;
+import net.opengis.gml.v_3_1_1.DirectPositionType;
 import net.opengis.gml.v_3_1_1.LineStringType;
+import net.opengis.gml.v_3_1_1.PointType;
 import net.opengis.xls.v_1_2_0.AbstractLocationType;
+import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
+import net.opengis.xls.v_1_2_0.AddressType;
 import net.opengis.xls.v_1_2_0.DetermineRouteRequestType;
 import net.opengis.xls.v_1_2_0.DetermineRouteResponseType;
+import net.opengis.xls.v_1_2_0.DirectoryRequestType;
+import net.opengis.xls.v_1_2_0.DirectoryResponseType;
 import net.opengis.xls.v_1_2_0.DistanceType;
+import net.opengis.xls.v_1_2_0.GeocodeRequestType;
+import net.opengis.xls.v_1_2_0.GeocodeResponseListType;
+import net.opengis.xls.v_1_2_0.GeocodeResponseType;
+import net.opengis.xls.v_1_2_0.GeocodedAddressType;
+import net.opengis.xls.v_1_2_0.NamedPlaceClassification;
+import net.opengis.xls.v_1_2_0.NamedPlaceType;
+import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
+import net.opengis.xls.v_1_2_0.ReverseGeocodeResponseType;
 import net.opengis.xls.v_1_2_0.RouteGeometryType;
 import net.opengis.xls.v_1_2_0.RouteHandleType;
 import net.opengis.xls.v_1_2_0.RouteInstructionsListType;
 import net.opengis.xls.v_1_2_0.RouteMapType;
 import net.opengis.xls.v_1_2_0.RouteSummaryType;
+import net.opengis.xls.v_1_2_0.StreetAddressType;
+import net.opengis.xls.v_1_2_0.StreetNameType;
 import net.opengis.xls.v_1_2_0.WayPointListType;
 import net.opengis.xls.v_1_2_0.WayPointType;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.gofleet.openLS.ddbb.GeoCoding;
 import org.hibernate.HibernateException;
-import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.postgis.PGgeometry;
+import org.postgis.Point;
 import org.postgresql.jdbc4.Jdbc4Array;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate3.HibernateCallback;
@@ -77,12 +93,11 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import com.vividsolutions.jts.io.WKTReader;
 
 @Repository
-public class RoutingDAO {
+public class GeoCodingDAO {
 	private static final String GID_ROUTING = "id";
 
 	private static final String TABLE_ROUTING = "routing";
@@ -95,48 +110,11 @@ public class RoutingDAO {
 
 	private HibernateTemplate hibernateTemplate;
 
-	private static Log LOG = LogFactory.getLog(RoutingDAO.class);
-
-	@Resource
-	private GeoCoding geocoding;
+	private static Log LOG = LogFactory.getLog(GeoCodingDAO.class);
 
 	@Autowired
 	public void setSessionFactory(SessionFactory sessionFactory) {
 		hibernateTemplate = new HibernateTemplate(sessionFactory);
-	}
-
-	/**
-	 * Devuelve el id del vértice más cercano, calculado según la tabla de
-	 * routing.
-	 * 
-	 * @param p
-	 * @param end
-	 * @return
-	 */
-	@Transactional(readOnly = true)
-	private BigInteger getVertex(final Point p, final boolean end) {
-		LOG.trace("getVertex(" + p + ", " + end + ")");
-		HibernateCallback<BigInteger> action = new HibernateCallback<BigInteger>() {
-
-			public BigInteger doInHibernate(Session session)
-					throws HibernateException, SQLException {
-				String point = "Start";
-				if (end) {
-					point = "End";
-				}
-
-				Query q = session.createQuery("select " + GID_ROUTING
-						+ " from " + TABLE_ROUTING
-						+ " order by ST_Distance(ST_SETSRID(ST_POINT(ST_X(ST_"
-						+ point + "Point(geometry)),ST_Y(ST_" + point
-						+ "Point(geometry))), " + EPSG_4326 + ")"
-						+ ",ST_SETSRID(?, " + EPSG_4326 + ")) asc");
-				q.setParameter(0, p);
-				q.setMaxResults(1);
-				return (BigInteger) q.uniqueResult();
-			}
-		};
-		return hibernateTemplate.executeWithNativeSession(action);
 	}
 
 	@Transactional(readOnly = true)
@@ -151,8 +129,7 @@ public class RoutingDAO {
 
 				WayPointListType wayPointList = param.getRoutePlan()
 						.getWayPointList();
-				Integer source = getSourcePoint(param.getRoutePlan()
-						.getWayPointList().getStartPoint());
+				Integer source = getSourcePoint(wayPointList);
 				Array stopTable = getStopTables(session, wayPointList);
 
 				consulta.setString(1, TABLE_ROUTING);
@@ -164,8 +141,11 @@ public class RoutingDAO {
 
 			}
 
-			private Integer getSourcePoint(WayPointType startPoint) {
-				
+			private Integer getSourcePoint(WayPointListType wayPointList) {
+				WayPointType startPoint = wayPointList.getStartPoint();
+				AbstractLocationType pType = startPoint.getLocation()
+						.getValue();
+
 				// TODO
 				// Geometry geom = geocoding.geocoding(param)
 
@@ -295,5 +275,221 @@ public class RoutingDAO {
 			}
 		};
 		return hibernateTemplate.executeWithNativeSession(action);
+	}
+
+	@Transactional(readOnly = true)
+	public DirectoryResponseType directory(DirectoryRequestType param) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Transactional(readOnly = true)
+	public ReverseGeocodeResponseType reverseGeocode(
+			ReverseGeocodeRequestType param) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Transactional(readOnly = true)
+	public List<List<AbstractResponseParametersType>> geocoding(
+			final GeocodeRequestType param) {
+		HibernateCallback<List<List<AbstractResponseParametersType>>> action = new HibernateCallback<List<List<AbstractResponseParametersType>>>() {
+			public List<List<AbstractResponseParametersType>> doInHibernate(
+					Session session) throws HibernateException, SQLException {
+
+				List<List<AbstractResponseParametersType>> res = new LinkedList<List<AbstractResponseParametersType>>();
+				List<AddressType> addressList = param.getAddress();
+
+				for (AddressType addressType : addressList) {
+					List<AbstractResponseParametersType> res_ = new LinkedList<AbstractResponseParametersType>();
+
+					CallableStatement consulta = session.connection()
+							.prepareCall("{call gls_geocoding(?, ?, ?, ?, ?)}");
+
+					String street = extractStreet(addressType);
+					String munsub = extractMunSub(addressType);
+					String mun = extractMun(addressType);
+					String subcountry = extractSubCountry(addressType);
+					String country = extractCountry(addressType);
+
+					consulta.setString(1, street);
+					consulta.setString(2, munsub);
+					consulta.setString(3, mun);
+					consulta.setString(4, subcountry);
+					consulta.setString(5, country);
+
+					LOG.debug(consulta);
+
+					ResultSet o = consulta.executeQuery();
+					GeocodeResponseType grt = new GeocodeResponseType();
+					while (o.next()) {
+						GeocodeResponseListType geocode = new GeocodeResponseListType();
+						try {
+							GeocodedAddressType addresstype = new GeocodedAddressType();
+							PGgeometry g = (PGgeometry) o.getObject("geometry");
+							Jdbc4Array address = (Jdbc4Array) o
+									.getArray("address");
+
+							addresstype.setPoint(getReferencedPoint(g));
+							addresstype.setAddress(getAddress(address));
+
+							geocode.getGeocodedAddress().add(addresstype);
+							geocode.setNumberOfGeocodedAddresses(BigInteger
+									.valueOf(1l));
+							grt.getGeocodeResponseList().add(geocode);
+						} catch (Throwable t) {
+							LOG.error("Error extracting data from database.", t);
+						}
+						res_.add(grt);
+					}
+					res.add(res_);
+				}
+				return res;
+			}
+
+			private String extractStreet(AddressType address) {
+				String res = null;
+
+				try {
+					if (address.getStreetAddress() != null) {
+						List<StreetNameType> street = address
+								.getStreetAddress().getStreet();
+						for (StreetNameType snt : street)
+							if (snt != null && snt.getValue() != null)
+								res = snt.getValue();
+					}
+				} catch (Throwable t) {
+					LOG.error("Error extracting Street from parameters. Failing back to null");
+					res = null;
+				}
+
+				return res;
+			}
+
+			private String extractMun(AddressType address) {
+				String res = null;
+
+				try {
+					for (NamedPlaceType place : address.getPlace()) {
+						try {
+							if (StringUtils.equalsIgnoreCase(place.getType()
+									.name(), ("Municipality"))
+									|| StringUtils.equalsIgnoreCase(place
+											.getType().toString(),
+											("Municipality")))
+								res = place.getValue();
+							break;
+						} catch (Throwable t) {
+							LOG.error(t);
+						}
+					}
+				} catch (Throwable t) {
+					LOG.error("Error extracting Mun from parameters", t);
+					res = null;
+				}
+
+				return res;
+			}
+
+			private String extractMunSub(AddressType address) {
+				String res = null;
+
+				try {
+					for (NamedPlaceType place : address.getPlace()) {
+						try {
+							if (StringUtils.equalsIgnoreCase(place.getType()
+									.name(), ("MunicipalitySubdivision"))
+									|| StringUtils.equalsIgnoreCase(place
+											.getType().toString(),
+											("MunicipalitySubdivision")))
+								res = place.getValue();
+							break;
+						} catch (Throwable t) {
+							LOG.error(t);
+						}
+					}
+				} catch (Throwable t) {
+					LOG.error("Error extracting MunSub from parameters", t);
+				}
+
+				return res;
+			}
+
+			private String extractCountry(AddressType address) {
+				String res = address.getCountryCode();
+
+				try {
+					res = address.getCountryCode();
+				} catch (Throwable t) {
+					LOG.error("Error extracting Country from parameters", t);
+				}
+
+				return res;
+			}
+
+			private String extractSubCountry(AddressType address) {
+				String res = null;
+
+				try {
+					for (NamedPlaceType place : address.getPlace()) {
+						try {
+							if (StringUtils.equalsIgnoreCase(place.getType()
+									.name(), ("CountrySubdivision"))
+									|| StringUtils.equalsIgnoreCase(place
+											.getType().toString(),
+											("CountrySubdivision")))
+								res = place.getValue();
+							break;
+						} catch (Throwable t) {
+							LOG.error(t);
+						}
+					}
+				} catch (Throwable t) {
+					LOG.error("Error extracting SubCountry from parameters", t);
+				}
+
+				return res;
+			}
+		};
+
+		return hibernateTemplate.executeWithNativeSession(action);
+	}
+
+	protected PointType getReferencedPoint(PGgeometry g) {
+		Point center = g.getGeometry().getFirstPoint();
+		ArrayList<Double> list = new ArrayList<Double>();
+		list.add(center.getX());
+		list.add(center.getY());
+		PointType point = new PointType();
+		DirectPositionType pos = new DirectPositionType();
+		pos.setValue(list);
+		point.setPos(pos);
+		return point;
+	}
+
+	protected AddressType getAddress(Jdbc4Array address) throws SQLException {
+
+		LOG.trace("Address returned" + address.toString());
+		
+		String[] fields = StringUtils.split(address.toString(), ",");
+
+		AddressType value = new AddressType();
+		value.setCountryCode(fields[fields.length - 1]);
+		StreetAddressType street_ = new StreetAddressType();
+		StreetNameType streetName = new StreetNameType();
+		streetName.setValue(fields[0].substring(1, fields[0].length() - 1));
+		street_.getStreet().add(streetName);
+		value.setStreetAddress(street_);
+		NamedPlaceType namedPlace = new NamedPlaceType();
+		namedPlace.setType(NamedPlaceClassification.MUNICIPALITY);
+		namedPlace.setValue(fields[2].substring(1, fields[2].length() - 1));
+		namedPlace = new NamedPlaceType();
+		namedPlace.setType(NamedPlaceClassification.MUNICIPALITY_SUBDIVISION);
+		namedPlace.setValue(fields[1].substring(1, fields[1].length() - 2));
+		namedPlace = new NamedPlaceType();
+		namedPlace.setType(NamedPlaceClassification.COUNTRY_SUBDIVISION);
+		namedPlace.setValue(fields[3].substring(1, fields[3].length() - 3));
+		value.getPlace().add(namedPlace);
+		return value;
 	}
 }

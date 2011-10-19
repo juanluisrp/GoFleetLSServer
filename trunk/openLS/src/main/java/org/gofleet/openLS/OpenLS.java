@@ -13,6 +13,7 @@ import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
 import net.opengis.xls.v_1_2_0.DetermineRouteRequestType;
 import net.opengis.xls.v_1_2_0.DirectoryRequestType;
 import net.opengis.xls.v_1_2_0.GeocodeRequestType;
+import net.opengis.xls.v_1_2_0.GeocodeResponseType;
 import net.opengis.xls.v_1_2_0.RequestType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
 import net.opengis.xls.v_1_2_0.XLSType;
@@ -114,17 +115,17 @@ public class OpenLS {
 	public OMElement openLS(OMElement parameter) throws AxisFault {
 		String method = Utils.getMethod(parameter);
 
-		List<AbstractResponseParametersType> resultado = null;
+		List<List<AbstractResponseParametersType>> resultado = new LinkedList<List<AbstractResponseParametersType>>();
 
 		try {
 			if (Utils.equals(routing, method))
-				resultado = routePlan(parameter);
+				resultado.add(routePlan(parameter));
 			else if (Utils.equals(reverseGeocoding, method))
-				resultado = reverseGeocoding(parameter);
+				resultado.add(reverseGeocoding(parameter));
 			else if (Utils.equals(geocoding, method))
 				resultado = geocoding(parameter);
-			else if (Utils.equals(directory, method))
-				resultado = directory(parameter);
+//			else if (Utils.equals(directory, method))
+//				resultado.add(directory(parameter));
 		} catch (JAXBException e) {
 			LOG.error(e, e);
 			throw AxisFault.makeFault(e);
@@ -246,7 +247,7 @@ public class OpenLS {
 	 * @throws XMLStreamException
 	 * @throws JAXBException
 	 */
-	protected List<AbstractResponseParametersType> geocoding(OMElement parameter)
+	protected List<List<AbstractResponseParametersType>> geocoding(OMElement parameter)
 			throws AxisFault, JAXBException, XMLStreamException,
 			FactoryConfigurationError, SAXException {
 		XLSType xls = (XLSType) Utils.convertOMElement2Object(parameter,
@@ -255,13 +256,8 @@ public class OpenLS {
 				.getValue();
 		GeocodeRequestType param = (GeocodeRequestType) body
 				.getRequestParameters().getValue();
-		AbstractResponseParametersType arpt = geoCodingController
-				.geocoding(param);
-		List<AbstractResponseParametersType> list = new LinkedList<AbstractResponseParametersType>();
 
-		list.add(arpt);
-
-		return list;
+		return geoCodingController.geocoding(param);
 	}
 
 }

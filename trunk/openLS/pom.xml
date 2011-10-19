@@ -157,11 +157,11 @@
 			<artifactId>ols-v_1_2_0-schema</artifactId>
 			<version>1.0.3</version>
 		</dependency>
-<dependency>
-    <groupId>org.jvnet.ogc</groupId>
-    <artifactId>ogc-tools-gml-jts</artifactId>
-    <version>1.0.3</version>
-</dependency>
+		<dependency>
+			<groupId>org.jvnet.ogc</groupId>
+			<artifactId>ogc-tools-gml-jts</artifactId>
+			<version>1.0.3</version>
+		</dependency>
 
 		<!-- test dependencies -->
 		<dependency>
@@ -207,6 +207,11 @@
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-entitymanager</artifactId>
+			<version>${hibernate.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-annotations</artifactId>
 			<version>${hibernate.version}</version>
 		</dependency>
 		<dependency>

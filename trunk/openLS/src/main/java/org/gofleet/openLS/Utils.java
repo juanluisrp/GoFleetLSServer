@@ -37,6 +37,33 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.NamespaceFilter;
 import org.xml.sax.helpers.XMLReaderFactory;
 
+/*
+ * Copyright (C) 2011, Emergya (http://www.emergya.es)
+ *
+ * @author <a href="mailto:marias@emergya.es">María Arias</a>
+ *
+ * This file is part of GoFleet
+ *
+ * This software is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * As a special exception, if you link this library with other files to
+ * produce an executable, this library does not by itself cause the
+ * resulting executable to be covered by the GNU General Public License.
+ * This exception does not however invalidate any other reasons why the
+ * executable file might be covered by the GNU General Public License.
+ */
 public class Utils {
 	static Log LOG = LogFactory.getLog(Utils.class);
 
@@ -102,30 +129,32 @@ public class Utils {
 	 * @throws AxisFault
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public static OMElement envelop(List<AbstractResponseParametersType> element)
-			throws AxisFault {
+	public static OMElement envelop(
+			List<List<AbstractResponseParametersType>> params) throws AxisFault {
 		try {
 			XLSType xlsType = new XLSType();
 
 			ResponseType responseType = new ResponseType();
 
-			for (AbstractResponseParametersType e : element) {
-				String responseClass = e.getClass().getSimpleName().toString();
-				responseClass = responseClass.substring(0,
-						responseClass.length() - 4);
+			for (List<AbstractResponseParametersType> element : params) {
+				for (AbstractResponseParametersType e : element) {
+					String responseClass = e.getClass().getSimpleName()
+							.toString();
+					responseClass = responseClass.substring(0,
+							responseClass.length() - 4);
 
-				JAXBElement<? extends AbstractResponseParametersType> body_ = new JAXBElement(
-						new QName("http://www.opengis.net/xls", responseClass,
-								""), e.getClass(), e);
-				responseType.setResponseParameters(body_);
+					JAXBElement<? extends AbstractResponseParametersType> body_ = new JAXBElement(
+							new QName("http://www.opengis.net/xls",
+									responseClass, ""), e.getClass(), e);
+					responseType.setResponseParameters(body_);
+				}
+				responseType.setNumberOfResponses(new BigInteger((new Integer(
+						element.size())).toString()));
+				xlsType.getBody().add(
+						new JAXBElement(new QName("http://www.opengis.net/xls",
+								"Response"), responseType.getClass(),
+								responseType));
 			}
-			responseType.setNumberOfResponses(new BigInteger((new Integer(
-					element.size())).toString()));
-
-			xlsType.getBody()
-					.add(new JAXBElement(new QName(
-							"http://www.opengis.net/xls", "Response"),
-							responseType.getClass(), responseType));
 
 			ResponseHeaderType header = new ResponseHeaderType();
 
@@ -207,7 +236,7 @@ public class Utils {
 				LOG.trace(xml);
 				LOG.trace("to " + classType);
 			}
-			
+
 			StringReader sr = new StringReader(xml);
 			NamespaceFilter inFilter = new NamespaceFilter("", false);
 			inFilter.setParent(XMLReaderFactory.createXMLReader());
@@ -259,16 +288,16 @@ public class Utils {
 		return false;
 	}
 
-	public static OMElement convertFile2OMElement(String path, Class<?> classType)
-			throws FileNotFoundException, JAXBException {
+	public static OMElement convertFile2OMElement(String path,
+			Class<?> classType) throws FileNotFoundException, JAXBException {
 		Unmarshaller m = JAXBContext.newInstance(classType)
 				.createUnmarshaller();
 		SAXOMBuilder builder = new SAXOMBuilder();
 		Object tmp = m.unmarshal(Utils.class.getResourceAsStream(path));
-	
+
 		Marshaller mar = JAXBContext.newInstance(classType).createMarshaller();
 		mar.marshal(tmp, builder);
-	
+
 		OMElement element = builder.getRootElement();
 		return element;
 	}

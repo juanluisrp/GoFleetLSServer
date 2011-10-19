@@ -107,7 +107,7 @@ DECLARE
 							to_cost FROM ' || routingTable, source_, target, true, true) LOOP
 				-- We update routingRes --
 				routingRes := routingRes || r.edge;
-				FOR g IN EXECUTE ('SELECT st_asText(the_geom) as the_geom FROM '||routingTable|| ' where '||r.edge||' = '||routingTable||'.' || gid) LOOP
+				FOR g IN EXECUTE ('SELECT st_asText(geometry) as the_geom FROM '||routingTable|| ' where '||r.edge||' = '||routingTable||'.' || gid) LOOP
 					geometry:= g.the_geom;
 				END LOOP;
 				-- We put in res the edge, cost and geometry of the path --

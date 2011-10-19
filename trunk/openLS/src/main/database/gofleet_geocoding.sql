@@ -18,6 +18,26 @@ CREATE TYPE geocoding_type AS(
 	geometry GEOMETRY
 );
 
+
+/* Create a function to return the geometry associated to an address */
+CREATE FUNCTION gls_geocoding(street character varying, munsub character varying, mun character varying, subcountry character varying, country character varying)
+RETURNS SETOF geocoding_type AS
+$BODY$
+DECLARE
+        address geocoding_address_type;
+BEGIN
+
+                address.street := street;
+                address.munsub := munsub;
+                address.mun := mun;
+                address.subcountry := subcountry;
+                address.country := country;
+		RETURN QUERY SELECT * FROM gofleet_geocoding(address);
+END;
+$BODY$
+LANGUAGE 'plpgsql';
+
+
 /* Create a function to return the geometry associated to an address */
 CREATE FUNCTION gofleet_geocoding(address_geocoding geocoding_address_type)
 RETURNS SETOF geocoding_type AS
@@ -43,6 +63,9 @@ BEGIN
 			(SELECT geometry, id FROM replace_table) as resultado 
 			WHERE st_distance(replaceme.geometry, resultado.geometry) = 0
 			and replaceme.id = resultado.id';
+
+	select replace(query, 'replace_table', 'street') INTO query;
+	select replace(query, 'replaceme', 's') INTO query;
 
 	/* Check the street's name */
 	IF(address_geocoding.street IS NOT NULL) THEN

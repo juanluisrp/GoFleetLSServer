@@ -27,10 +27,11 @@ package org.gofleet.openLS.ddbb;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
+import java.util.List;
+
 import javax.annotation.Resource;
 
-import org.apache.commons.lang3.StringUtils;
-
+import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
 import net.opengis.xls.v_1_2_0.DirectoryRequestType;
 import net.opengis.xls.v_1_2_0.DirectoryResponseType;
 import net.opengis.xls.v_1_2_0.GeocodeRequestType;
@@ -38,20 +39,26 @@ import net.opengis.xls.v_1_2_0.GeocodeResponseType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeResponseType;
 
+import org.apache.commons.lang3.StringUtils;
+import org.gofleet.openLS.ddbb.dao.GeoCodingDAO;
+
 @Resource
 public class GeoCoding {
 
+	@Resource
+	private GeoCodingDAO dao;
+
 	public DirectoryResponseType directory(DirectoryRequestType param) {
-		return new DirectoryResponseType();
+		return dao.directory(param);
 	}
 
 	public ReverseGeocodeResponseType reverseGeocode(
 			ReverseGeocodeRequestType param) {
-		return new ReverseGeocodeResponseType();
+		return dao.reverseGeocode(param);
 	}
 
-	public GeocodeResponseType geocoding(GeocodeRequestType param) {
-		return new GeocodeResponseType();
+	public List<List<AbstractResponseParametersType>> geocoding(GeocodeRequestType param) {
+		return dao.geocoding(param);
 	}
 
 	/**

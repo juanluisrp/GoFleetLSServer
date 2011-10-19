@@ -36,6 +36,7 @@ import java.util.List;
 
 import net.opengis.gml.v_3_1_1.DirectPositionType;
 import net.opengis.gml.v_3_1_1.PointType;
+import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
 import net.opengis.xls.v_1_2_0.AddressType;
 import net.opengis.xls.v_1_2_0.GeocodeRequestType;
 import net.opengis.xls.v_1_2_0.GeocodeResponseListType;
@@ -126,7 +127,9 @@ public class GeoCodingTest {
 		param.setAddress(addressArray);
 		assertNotNull(param);
 
-		GeocodeResponseType res = geocoding.geocoding(param);
+		List<List<AbstractResponseParametersType>> listres = geocoding.geocoding(param);
+		
+		GeocodeResponseType res = (GeocodeResponseType) listres.get(0).get(0);
 		// Que el resultado no sea nulo
 		assertNotNull(res);
 		List<GeocodeResponseListType> arrayRes = res.getGeocodeResponseList();
