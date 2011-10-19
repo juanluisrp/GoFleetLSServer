@@ -13,9 +13,11 @@ import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.impl.builder.SAXOMBuilder;
 import org.apache.axis2.AxisFault;
 import org.gofleet.openLS.OpenLS;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.Repeat;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -25,42 +27,55 @@ public class SimpleServiceTests {
 
 	@Autowired
 	OpenLS openLS;
+	static OMElement determineRouteRequest = null;
+	static OMElement geocodingRequest = null;
+	static OMElement reverseGeocodingRequest = null;
 
-	@Test
+	@BeforeClass
+	public static void initialize() throws FileNotFoundException, JAXBException {
+		determineRouteRequest = convertFile2OMElement(
+				"/determineRouteRequest.xml", XLSType.class);
+		geocodingRequest = convertFile2OMElement("/geocodingRequest.xml",
+				XLSType.class);
+		reverseGeocodingRequest = convertFile2OMElement(
+				"/reverseGeocoding.xml", XLSType.class);
+	}
+
+	@Test(timeout = 15000)
+	@Repeat(value = 10)
 	public void testEmptyRoute() throws AxisFault, FileNotFoundException,
 			JAXBException {
-		openLS.openLS(convertFile2OMElement("/determineRouteRequest.xml",
-				XLSType.class));
+		openLS.openLS(determineRouteRequest);
 	}
 
-	@Test
+	@Test(timeout = 5000)
+	@Repeat(value = 10)
 	public void testEmptyGeocoding() throws AxisFault, FileNotFoundException,
 			JAXBException {
-		openLS.openLS(convertFile2OMElement("/geocodingRequest.xml",
-				XLSType.class));
+		openLS.openLS(geocodingRequest);
 	}
 
-	@Test
+	@Test(timeout = 1000)
 	public void testEmptyDirectory() throws AxisFault, FileNotFoundException,
 			JAXBException {
 		openLS.openLS(convertFile2OMElement("/directory.xml", XLSType.class));
 	}
 
-	@Test
+	@Test(timeout = 5000)
+	@Repeat(value = 10)
 	public void testEmptyReverseGeocoding() throws AxisFault,
 			FileNotFoundException, JAXBException {
-		openLS.openLS(convertFile2OMElement("/reverseGeocoding.xml",
-				XLSType.class));
+		openLS.openLS(reverseGeocodingRequest);
 	}
 
-	private OMElement convertFile2OMElement(String path, Class<?> classType)
-			throws FileNotFoundException, JAXBException {
-		Unmarshaller m = JAXBContext.newInstance(classType)
-				.createUnmarshaller();
+	private static OMElement convertFile2OMElement(String path,
+			Class<?> classType) throws FileNotFoundException, JAXBException {
+		JAXBContext jaxbContext = JAXBContext.newInstance(classType);
+		Unmarshaller m = jaxbContext.createUnmarshaller();
 		SAXOMBuilder builder = new SAXOMBuilder();
-		Object tmp = m.unmarshal(this.getClass().getResourceAsStream(path));
-
-		Marshaller mar = JAXBContext.newInstance(classType).createMarshaller();
+		Object tmp = m.unmarshal(SimpleServiceTests.class
+				.getResourceAsStream(path));
+		Marshaller mar = jaxbContext.createMarshaller();
 		mar.marshal(tmp, builder);
 
 		OMElement element = builder.getRootElement();

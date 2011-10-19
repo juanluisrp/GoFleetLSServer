@@ -23,7 +23,7 @@ import net.opengis.xls.v_1_2_0.XLSType;
 import org.apache.axiom.om.OMElement;
 import org.apache.axis2.AxisFault;
 import org.gofleet.openLS.OpenLS;
-import org.gofleet.openLS.Utils;
+import org.gofleet.openLS.util.Utils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,8 +108,8 @@ public class RoutingServiceTests {
 		assertNotNull("There should be a list of positions",
 				posOrPointPropertyOrPointRep);
 
-		assertEquals("I was expecting four points",
-				posOrPointPropertyOrPointRep.size(), 4);
+		assertEquals("I was expecting five points",
+				posOrPointPropertyOrPointRep.size(), 10);
 
 		for (JAXBElement<?> element : posOrPointPropertyOrPointRep) {
 			assertNotNull(element);
@@ -117,9 +117,9 @@ public class RoutingServiceTests {
 			assertNotNull(o);
 			assertTrue(o instanceof DirectPositionType);
 			DirectPositionType dpt = new DirectPositionType();
-			// assertTrue(dpt.getSrsName().indexOf("4326") > 0);
-			assertEquals("Are we working on " + dpt.getValue().size()
-					+ " dimensions?" + dpt, dpt.getValue().size(), 2);
+			if (dpt.getValue().size() > 0)
+				assertEquals("Are we working on " + dpt.getValue().size()
+						+ " dimensions?" + dpt, 2, dpt.getValue().size());
 
 			for (Double d : dpt.getValue())
 				assertNotNull(d);

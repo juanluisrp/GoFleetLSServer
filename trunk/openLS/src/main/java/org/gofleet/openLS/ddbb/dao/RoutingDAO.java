@@ -47,7 +47,6 @@ import javax.xml.bind.Unmarshaller;
 
 import net.opengis.gml.v_3_1_1.CoordinatesType;
 import net.opengis.gml.v_3_1_1.LineStringType;
-import net.opengis.xls.v_1_2_0.AbstractLocationType;
 import net.opengis.xls.v_1_2_0.DetermineRouteRequestType;
 import net.opengis.xls.v_1_2_0.DetermineRouteResponseType;
 import net.opengis.xls.v_1_2_0.DistanceType;
@@ -62,10 +61,14 @@ import net.opengis.xls.v_1_2_0.WayPointType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.gofleet.openLS.ddbb.GeoCoding;
+import org.gofleet.openLS.ddbb.bean.Routing;
+import org.gofleet.openLS.ddbb.order.StDistance;
+import org.gofleet.openLS.util.GeoUtil;
+import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
-import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.criterion.Projections;
 import org.postgresql.jdbc4.Jdbc4Array;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate3.HibernateCallback;
@@ -77,7 +80,6 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import com.vividsolutions.jts.io.WKTReader;
 
@@ -114,26 +116,18 @@ public class RoutingDAO {
 	 * @return
 	 */
 	@Transactional(readOnly = true)
-	private BigInteger getVertex(final Point p, final boolean end) {
+	private Integer getVertex(final Geometry p, final boolean end) {
 		LOG.trace("getVertex(" + p + ", " + end + ")");
-		HibernateCallback<BigInteger> action = new HibernateCallback<BigInteger>() {
+		HibernateCallback<Integer> action = new HibernateCallback<Integer>() {
 
-			public BigInteger doInHibernate(Session session)
+			public Integer doInHibernate(Session session)
 					throws HibernateException, SQLException {
-				String point = "Start";
-				if (end) {
-					point = "End";
-				}
-
-				Query q = session.createQuery("select " + GID_ROUTING
-						+ " from " + TABLE_ROUTING
-						+ " order by ST_Distance(ST_SETSRID(ST_POINT(ST_X(ST_"
-						+ point + "Point(geometry)),ST_Y(ST_" + point
-						+ "Point(geometry))), " + EPSG_4326 + ")"
-						+ ",ST_SETSRID(?, " + EPSG_4326 + ")) asc");
-				q.setParameter(0, p);
-				q.setMaxResults(1);
-				return (BigInteger) q.uniqueResult();
+				p.setSRID(4326);
+				Criteria criteria = session.createCriteria(Routing.class);
+				criteria.addOrder(StDistance.asc("geometry", p));
+				criteria.setProjection(Projections.id());
+				criteria.setMaxResults(1);
+				return (Integer) criteria.uniqueResult();
 			}
 		};
 		return hibernateTemplate.executeWithNativeSession(action);
@@ -158,28 +152,33 @@ public class RoutingDAO {
 				consulta.setString(1, TABLE_ROUTING);
 				consulta.setArray(2, stopTable);
 				consulta.setString(3, GID_ROUTING);
-				consulta.setInt(4, source);
+				if (source != null)
+					consulta.setInt(4, source.intValue());
+				else
+					consulta.setInt(4, -1);
+
+				LOG.debug(consulta);
 
 				return getRouteResponse(consulta.executeQuery());
 
 			}
 
 			private Integer getSourcePoint(WayPointType startPoint) {
-				
-				// TODO
-				// Geometry geom = geocoding.geocoding(param)
-
-				Integer source = new Integer(10);
-				return source;
+				return getVertex(GeoUtil.getPoint(startPoint), false);
 			}
 
 			private Array getStopTables(Session session,
 					WayPointListType wayPointList) throws SQLException {
 				List<Integer> stops = new ArrayList<Integer>();
-				for (WayPointType wayPoint : wayPointList.getViaPoint())
-					stops.add(20);
-
-				// TODO
+				for (WayPointType wayPoint : wayPointList.getViaPoint()) {
+					Integer bi = getVertex(GeoUtil.getPoint(wayPoint), false);
+					if (bi != null)
+						stops.add(bi.intValue());
+				}
+				Integer vertex = getVertex(
+						GeoUtil.getPoint(wayPointList.getEndPoint()), false);
+				if (vertex != null)
+					stops.add(vertex.intValue());
 
 				Array stopTable = session.connection().createArrayOf("int4",
 						stops.toArray(new Integer[] {}));
@@ -190,6 +189,7 @@ public class RoutingDAO {
 					ResultSet resultado) throws SQLException {
 
 				DetermineRouteResponseType res = new DetermineRouteResponseType();
+				Integer last = -1;
 				if (resultado.next()) {
 					String[][] array = (String[][]) ((Jdbc4Array) resultado
 							.getArray(1)).getArray();
@@ -206,10 +206,19 @@ public class RoutingDAO {
 
 					for (String[] step : array) {
 						try {
-							Geometry geometry = wktReader.read(step[2]);
-							for (Coordinate coord : geometry.getCoordinates())
-								coordinates.add(coord);
-							cost += new Double(step[1]);
+							Integer current = new Integer(step[0]);
+							LOG.trace("Comparing " + current + " with " + last);
+							if(!current.equals(last)) {
+								Geometry geometry = wktReader.read(step[2]);
+								LOG.trace(geometry);
+								for (Coordinate coord : geometry
+										.getCoordinates())
+									coordinates.add(coord);
+								cost += new Double(step[1]);
+								LOG.trace("New cost " + cost);
+							} else
+								LOG.trace("Repeating step " + current);
+							last = current;
 						} catch (Exception e) {
 							LOG.error("Unknown Geometry", e);
 						}

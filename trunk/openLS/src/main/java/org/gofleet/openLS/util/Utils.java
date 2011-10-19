@@ -1,4 +1,4 @@
-package org.gofleet.openLS;
+package org.gofleet.openLS.util;
 
 import java.io.FileNotFoundException;
 import java.io.StringReader;
@@ -66,12 +66,21 @@ import org.xml.sax.helpers.XMLReaderFactory;
  */
 public class Utils {
 	static Log LOG = LogFactory.getLog(Utils.class);
+	private static final XMLOutputFactory XOF = XMLOutputFactory.newInstance();
+	private static JAXBContext JAXB_C = null;
+
+	static {
+		try {
+			JAXB_C = JAXBContext.newInstance(XLSType.class);
+		} catch (JAXBException e) {
+			LOG.error("Some problem with JAXB", e);
+		}
+	}
 
 	public static String getXML(OMElement element)
 			throws FactoryConfigurationError, XMLStreamException, JAXBException {
-		XMLOutputFactory xof = XMLOutputFactory.newInstance();
 		StringWriter stringWriter = new StringWriter();
-		XMLStreamWriter xmlStreamWriter = xof
+		XMLStreamWriter xmlStreamWriter = XOF
 				.createXMLStreamWriter(stringWriter);
 		XMLStreamReader xmlStreamReader = element.getXMLStreamReader();
 		XmlReaderToWriter.writeAll(xmlStreamReader, xmlStreamWriter);
@@ -220,8 +229,7 @@ public class Utils {
 			Class<?> classType, boolean useType) throws JAXBException,
 			XMLStreamException, FactoryConfigurationError, SAXException {
 		try {
-			Unmarshaller unmarshaller = JAXBContext.newInstance(classType)
-					.createUnmarshaller();
+			Unmarshaller unmarshaller = JAXB_C.createUnmarshaller();
 			String xml = getXML(parameter);
 
 			if (!useType) {

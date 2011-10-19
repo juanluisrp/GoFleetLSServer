@@ -15,10 +15,7 @@
 	<tx:annotation-driven transaction-manager="transactionManager"
 		proxy-target-class="true" />
 	<context:annotation-config />
-	<context:component-scan base-package="org.gofleet.openLS.ddbb.dao" />
-	<context:component-scan base-package="org.gofleet.openLS.ddbb.bean" />
-	<context:component-scan base-package="org.gofleet.openLS.ddbb" />
-	<context:component-scan base-package="org.gofleet.openLS" />
+	<context:component-scan base-package="org.gofleet.openLS.ddbb.bean"  />
 
 	<bean id="propertyConfigurer"
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
@@ -57,7 +54,11 @@
 		<property name="hibernateProperties">
 			<props>
 				<prop key="hibernate.dialect">${jdbc.hibernate.dialect}</prop>
-				<prop key="hibernate.show_sql">false</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.connection.autocommit">true</prop>
+				<prop key="hibernate.dialect">org.hibernatespatial.postgis.PostgisDialect</prop>
+				<prop key="hibernate.default_entity_mode">pojo</prop>
+				<prop key="hibernate.generate_statistics">false</prop>
 			</props>
 		</property>
 	</bean>
@@ -78,8 +79,8 @@
 	<bean id="geoCodingDAO" class="org.gofleet.openLS.ddbb.dao.GeoCodingDAO">
 		<property name="sessionFactory" ref="sessionFactory" />
 	</bean>
-	<bean id="routing" class="org.gofleet.openLS.ddbb.Routing">
-	</bean>
-	<bean id="geocoding" class="org.gofleet.openLS.ddbb.GeoCoding">
-	</bean>
+	<bean id="routing" class="org.gofleet.openLS.ddbb.Routing"/>
+	<bean id="geocoding" class="org.gofleet.openLS.ddbb.GeoCoding"/>
+	
+	
 </beans>  
