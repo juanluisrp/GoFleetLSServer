@@ -22,13 +22,6 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.CollapsedStringAdapter;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
-import net.opengis.xls.v_1_2_0.AbstractBodyType;
-import net.opengis.xls.v_1_2_0.AbstractHeaderType;
-import net.opengis.xls.v_1_2_0.RequestHeaderType;
-import net.opengis.xls.v_1_2_0.RequestType;
-import net.opengis.xls.v_1_2_0.ResponseHeaderType;
-import net.opengis.xls.v_1_2_0.ResponseType;
-
 import org.jvnet.jaxb2_commons.lang.CopyStrategy;
 import org.jvnet.jaxb2_commons.lang.CopyTo;
 import org.jvnet.jaxb2_commons.lang.Equals;
@@ -410,6 +403,7 @@ public class XLSType implements Cloneable, CopyTo, Equals, HashCode, MergeFrom,
 		mergeFrom(null, null, left, right, strategy);
 	}
 
+	@SuppressWarnings("unchecked")
 	public void mergeFrom(ObjectLocator leftLocator,
 			ObjectLocator rightLocator, Object left, Object right,
 			MergeStrategy strategy) {

@@ -33,11 +33,8 @@ import javax.annotation.Resource;
 
 import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
 import net.opengis.xls.v_1_2_0.DirectoryRequestType;
-import net.opengis.xls.v_1_2_0.DirectoryResponseType;
 import net.opengis.xls.v_1_2_0.GeocodeRequestType;
-import net.opengis.xls.v_1_2_0.GeocodeResponseType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
-import net.opengis.xls.v_1_2_0.ReverseGeocodeResponseType;
 
 import org.apache.commons.lang3.StringUtils;
 import org.gofleet.openLS.ddbb.dao.GeoCodingDAO;
@@ -48,16 +45,18 @@ public class GeoCoding {
 	@Resource
 	private GeoCodingDAO dao;
 
-	public DirectoryResponseType directory(DirectoryRequestType param) {
+	public List<List<AbstractResponseParametersType>> directory(
+			DirectoryRequestType param) {
 		return dao.directory(param);
 	}
 
-	public ReverseGeocodeResponseType reverseGeocode(
+	public List<List<AbstractResponseParametersType>> reverseGeocode(
 			ReverseGeocodeRequestType param) {
 		return dao.reverseGeocode(param);
 	}
 
-	public List<List<AbstractResponseParametersType>> geocoding(GeocodeRequestType param) {
+	public List<List<AbstractResponseParametersType>> geocoding(
+			GeocodeRequestType param) {
 		return dao.geocoding(param);
 	}
 

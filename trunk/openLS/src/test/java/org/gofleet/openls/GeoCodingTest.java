@@ -32,7 +32,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.JAXBElement;
@@ -40,7 +39,6 @@ import javax.xml.bind.JAXBException;
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLStreamException;
 
-import net.opengis.gml.v_3_1_1.DirectPositionType;
 import net.opengis.gml.v_3_1_1.PointType;
 import net.opengis.xls.v_1_2_0.AbstractBodyType;
 import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
@@ -48,9 +46,7 @@ import net.opengis.xls.v_1_2_0.AddressType;
 import net.opengis.xls.v_1_2_0.GeocodeResponseListType;
 import net.opengis.xls.v_1_2_0.GeocodeResponseType;
 import net.opengis.xls.v_1_2_0.GeocodedAddressType;
-import net.opengis.xls.v_1_2_0.PositionType;
 import net.opengis.xls.v_1_2_0.ResponseType;
-import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeResponseType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodedLocationType;
 import net.opengis.xls.v_1_2_0.XLSType;
@@ -77,49 +73,65 @@ public class GeoCodingTest {
 	OpenLS openLS;
 
 	@Test
-	public void testReverseGeocoding() {
+	public void testReverseGeocoding() throws AxisFault, FileNotFoundException,
+			JAXBException, XMLStreamException, FactoryConfigurationError, SAXException {
+		OMElement resultado = openLS.openLS(Utils.convertFile2OMElement(
+				"/reverseGeocoding.xml", XLSType.class));
 
-		// Lista de valores del punto
-		ArrayList<Double> list = new ArrayList<Double>();
-		list.add(37.38);
-		list.add(-5.99);
+		Object object = Utils.convertOMElement2Object(resultado, XLSType.class,
+				true);
 
-		// Punto que dará contenido al parámetro de entrada
-		PointType point = new PointType();
-		DirectPositionType pos = new DirectPositionType();
-		pos.setValue(list);
-		point.setPos(pos);
+		assertTrue("This is no XLS object", object instanceof XLSType);
 
-		// Posición de prueba para el parámetro
-		PositionType position = new PositionType();
-		position.setPoint(point);
+		XLSType xls = (XLSType) object;
 
-		// Parametros del servicio
-		ReverseGeocodeRequestType param = new ReverseGeocodeRequestType();
-		param.setPosition(position);
-		assertNotNull(param);
+		assertNotNull("The response is null", xls);
 
-		// Servicio de geocoding al que se le introduce los parametros
-		ReverseGeocodeResponseType res = geocoding.reverseGeocode(param);
-		assertNotNull(res);
+		assertNotNull("The body is null.", xls.getBody());
 
-		List<ReverseGeocodedLocationType> res_array = res
-				.getReverseGeocodedLocation();
-		assertNotNull(res_array);
-		assertTrue(res_array.size() > 0);
-		for (ReverseGeocodedLocationType locationType : res_array) {
-			AddressType addressRes = locationType.getAddress();
-			PointType pointRes = locationType.getPoint();
-			// Comprobamos que cada parámetro de la dirección no sea nulo
-			assertNotNull(addressRes.getAddressee());
-			assertNotNull(addressRes.getLanguage());
-			assertNotNull(addressRes.getPostalCode());
-			assertNotNull(addressRes.getCountryCode());
-			// Comprobamos que el punto del resultado es el mismo que el del
-			// origen
-			assertTrue(pointRes.equals(point));
+		List<JAXBElement<? extends AbstractBodyType>> body = xls.getBody();
+
+		assertNotNull("The body is null! How? We have just checked it!", body);
+
+		assertEquals("The body should have one single response", body.size(), 1);
+
+		for (JAXBElement<? extends AbstractBodyType> body_ : body) {
+			AbstractBodyType o = body_.getValue();
+
+			assertTrue("This is no response!", o instanceof ResponseType);
+
+			ResponseType response = (ResponseType) o;
+
+			assertNotNull("The contents of the body are null? (ResponseType)",
+					response);
+
+			assertEquals("I should have only one response", response
+					.getNumberOfResponses().intValue(), 1);
+
+			assertNotNull("Response parameters are null!",
+					response.getResponseParameters());
+
+			AbstractResponseParametersType arpt = response
+					.getResponseParameters().getValue();
+
+			assertNotNull(arpt);
+			assertTrue("The response is not a geocode response",
+					arpt instanceof ReverseGeocodeResponseType);
+
+			ReverseGeocodeResponseType res = (ReverseGeocodeResponseType) arpt;
+
+			List<ReverseGeocodedLocationType> res_array = res
+					.getReverseGeocodedLocation();
+			assertNotNull(res_array);
+			assertTrue(res_array.size() > 0);
+			for (ReverseGeocodedLocationType locationType : res_array) {
+				AddressType addressRes = locationType.getAddress();
+				assertNotNull(addressRes.getCountryCode());
+				assertNotNull(addressRes.getStreetAddress());
+				assertNotNull(addressRes.getStreetAddress().getStreet());
+				assertEquals(addressRes.getStreetAddress().getStreet().size(), 1);
+			}
 		}
-
 	}
 
 	@Test

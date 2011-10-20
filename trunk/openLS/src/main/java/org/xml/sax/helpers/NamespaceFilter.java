@@ -3,8 +3,6 @@ package org.xml.sax.helpers;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
-import org.xml.sax.helpers.XMLFilterImpl;
-
 /**
  * Helper class found on this url:
  * http://stackoverflow.com/questions/277502/jaxb

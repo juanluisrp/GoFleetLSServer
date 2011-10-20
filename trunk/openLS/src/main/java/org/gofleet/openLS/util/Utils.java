@@ -225,6 +225,7 @@ public class Utils {
 	 * @return
 	 * @throws AxisFault
 	 */
+	@SuppressWarnings("rawtypes")
 	public static Object convertOMElement2Object(OMElement parameter,
 			Class<?> classType, boolean useType) throws JAXBException,
 			XMLStreamException, FactoryConfigurationError, SAXException {

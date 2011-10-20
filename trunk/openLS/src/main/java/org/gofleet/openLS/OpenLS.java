@@ -13,7 +13,6 @@ import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
 import net.opengis.xls.v_1_2_0.DetermineRouteRequestType;
 import net.opengis.xls.v_1_2_0.DirectoryRequestType;
 import net.opengis.xls.v_1_2_0.GeocodeRequestType;
-import net.opengis.xls.v_1_2_0.GeocodeResponseType;
 import net.opengis.xls.v_1_2_0.RequestType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
 import net.opengis.xls.v_1_2_0.XLSType;
@@ -122,11 +121,11 @@ public class OpenLS {
 			if (Utils.equals(routing, method))
 				resultado.add(routePlan(parameter));
 			else if (Utils.equals(reverseGeocoding, method))
-				resultado.add(reverseGeocoding(parameter));
+				resultado = reverseGeocoding(parameter);
 			else if (Utils.equals(geocoding, method))
 				resultado = geocoding(parameter);
-//			else if (Utils.equals(directory, method))
-//				resultado.add(directory(parameter));
+			else if (Utils.equals(directory, method))
+				resultado = directory(parameter);
 		} catch (JAXBException e) {
 			LOG.error(e, e);
 			throw AxisFault.makeFault(e);
@@ -166,6 +165,7 @@ public class OpenLS {
 			FactoryConfigurationError, SAXException {
 		XLSType xls = (XLSType) Utils.convertOMElement2Object(parameter,
 				XLSType.class);
+		@SuppressWarnings("unchecked")
 		RequestType body = ((JAXBElement<RequestType>) xls.getBody().get(0))
 				.getValue();
 		DetermineRouteRequestType param = (DetermineRouteRequestType) body
@@ -190,7 +190,8 @@ public class OpenLS {
 	 * @throws XMLStreamException
 	 * @throws JAXBException
 	 */
-	protected List<AbstractResponseParametersType> reverseGeocoding(
+	@SuppressWarnings("unchecked")
+	protected List<List<AbstractResponseParametersType>> reverseGeocoding(
 			OMElement parameter) throws AxisFault, JAXBException,
 			XMLStreamException, FactoryConfigurationError, SAXException {
 		XLSType xls = (XLSType) Utils.convertOMElement2Object(parameter,
@@ -199,13 +200,7 @@ public class OpenLS {
 				.getValue();
 		ReverseGeocodeRequestType param = (ReverseGeocodeRequestType) body
 				.getRequestParameters().getValue();
-		AbstractResponseParametersType arpt = geoCodingController
-				.reverseGeocode(param);
-		List<AbstractResponseParametersType> list = new LinkedList<AbstractResponseParametersType>();
-
-		list.add(arpt);
-
-		return list;
+		return geoCodingController.reverseGeocode(param);
 	}
 
 	/**
@@ -219,22 +214,17 @@ public class OpenLS {
 	 * @throws XMLStreamException
 	 * @throws JAXBException
 	 */
-	protected List<AbstractResponseParametersType> directory(OMElement parameter)
-			throws AxisFault, JAXBException, XMLStreamException,
-			FactoryConfigurationError, SAXException {
+	protected List<List<AbstractResponseParametersType>> directory(
+			OMElement parameter) throws AxisFault, JAXBException,
+			XMLStreamException, FactoryConfigurationError, SAXException {
 		XLSType xls = (XLSType) Utils.convertOMElement2Object(parameter,
 				XLSType.class);
+		@SuppressWarnings("unchecked")
 		RequestType body = ((JAXBElement<RequestType>) xls.getBody().get(0))
 				.getValue();
 		DirectoryRequestType param = (DirectoryRequestType) body
 				.getRequestParameters().getValue();
-		AbstractResponseParametersType arpt = geoCodingController
-				.directory(param);
-		List<AbstractResponseParametersType> list = new LinkedList<AbstractResponseParametersType>();
-
-		list.add(arpt);
-
-		return list;
+		return geoCodingController.directory(param);
 	}
 
 	/**
@@ -248,11 +238,12 @@ public class OpenLS {
 	 * @throws XMLStreamException
 	 * @throws JAXBException
 	 */
-	protected List<List<AbstractResponseParametersType>> geocoding(OMElement parameter)
-			throws AxisFault, JAXBException, XMLStreamException,
-			FactoryConfigurationError, SAXException {
+	protected List<List<AbstractResponseParametersType>> geocoding(
+			OMElement parameter) throws AxisFault, JAXBException,
+			XMLStreamException, FactoryConfigurationError, SAXException {
 		XLSType xls = (XLSType) Utils.convertOMElement2Object(parameter,
 				XLSType.class);
+		@SuppressWarnings("unchecked")
 		RequestType body = ((JAXBElement<RequestType>) xls.getBody().get(0))
 				.getValue();
 		GeocodeRequestType param = (GeocodeRequestType) body

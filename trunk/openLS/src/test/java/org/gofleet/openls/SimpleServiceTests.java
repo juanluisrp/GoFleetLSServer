@@ -14,6 +14,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.ExpectedException;
 import org.springframework.test.annotation.Repeat;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -27,6 +28,7 @@ public class SimpleServiceTests {
 	static OMElement determineRouteRequest = null;
 	static OMElement geocodingRequest = null;
 	static OMElement reverseGeocodingRequest = null;
+	static OMElement directoryRequest = null;
 
 	@BeforeClass
 	public static void initialize() throws FileNotFoundException, JAXBException {
@@ -36,6 +38,8 @@ public class SimpleServiceTests {
 				XLSType.class);
 		reverseGeocodingRequest = Utils.convertFile2OMElement(
 				"/reverseGeocoding.xml", XLSType.class);
+		directoryRequest = Utils.convertFile2OMElement("/directory.xml",
+				XLSType.class);
 	}
 
 	@Test(timeout = 20000)
@@ -53,10 +57,10 @@ public class SimpleServiceTests {
 	}
 
 	@Test(timeout = 1000)
+	@ExpectedException(value = AxisFault.class)
 	public void testEmptyDirectory() throws AxisFault, FileNotFoundException,
 			JAXBException {
-		openLS.openLS(Utils.convertFile2OMElement("/directory.xml",
-				XLSType.class));
+		openLS.openLS(directoryRequest);
 	}
 
 	@Test(timeout = 5000)

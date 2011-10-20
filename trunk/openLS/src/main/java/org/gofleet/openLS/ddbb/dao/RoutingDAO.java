@@ -30,7 +30,6 @@ package org.gofleet.openLS.ddbb.dao;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
@@ -45,7 +44,6 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 
-import net.opengis.gml.v_3_1_1.CoordinatesType;
 import net.opengis.gml.v_3_1_1.LineStringType;
 import net.opengis.xls.v_1_2_0.DetermineRouteRequestType;
 import net.opengis.xls.v_1_2_0.DetermineRouteResponseType;
@@ -89,16 +87,14 @@ public class RoutingDAO {
 
 	private static final String TABLE_ROUTING = "routing";
 
+	@SuppressWarnings("unused")
 	private static final String EPSG_4326 = "EPSG:4326";
-
-	private static final String TS = " ";
-
-	private static final String CS = ",";
 
 	private HibernateTemplate hibernateTemplate;
 
 	private static Log LOG = LogFactory.getLog(RoutingDAO.class);
 
+	@SuppressWarnings("unused")
 	@Resource
 	private GeoCoding geocoding;
 
@@ -140,6 +136,8 @@ public class RoutingDAO {
 
 			public DetermineRouteResponseType doInHibernate(Session session)
 					throws HibernateException, SQLException {
+				// TODO change deprecation?
+				@SuppressWarnings("deprecation")
 				CallableStatement consulta = session.connection().prepareCall(
 						"{call gls_tsp(?,?,?,?)}");
 
@@ -180,6 +178,8 @@ public class RoutingDAO {
 				if (vertex != null)
 					stops.add(vertex.intValue());
 
+				// TODO change deprecation?
+				@SuppressWarnings("deprecation")
 				Array stopTable = session.connection().createArrayOf("int4",
 						stops.toArray(new Integer[] {}));
 				return stopTable;
@@ -208,7 +208,7 @@ public class RoutingDAO {
 						try {
 							Integer current = new Integer(step[0]);
 							LOG.trace("Comparing " + current + " with " + last);
-							if(!current.equals(last)) {
+							if (!current.equals(last)) {
 								Geometry geometry = wktReader.read(step[2]);
 								LOG.trace(geometry);
 								for (Coordinate coord : geometry
@@ -294,13 +294,6 @@ public class RoutingDAO {
 				RouteGeometryType routeGeometry = new RouteGeometryType();
 				routeGeometry.setLineString(lineString);
 				return routeGeometry;
-			}
-
-			private CoordinatesType getCoordinatesType() {
-				CoordinatesType coordinateType = new CoordinatesType();
-				coordinateType.setCs(CS);
-				coordinateType.setTs(TS);
-				return coordinateType;
 			}
 		};
 		return hibernateTemplate.executeWithNativeSession(action);

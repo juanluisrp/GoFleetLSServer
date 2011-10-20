@@ -2,10 +2,15 @@ package org.gofleet.openLS.util;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
+import net.opengis.gml.v_3_1_1.AbstractRingPropertyType;
+import net.opengis.gml.v_3_1_1.CoordType;
 import net.opengis.gml.v_3_1_1.DirectPositionType;
+import net.opengis.gml.v_3_1_1.LinearRingType;
 import net.opengis.gml.v_3_1_1.PointType;
+import net.opengis.gml.v_3_1_1.PolygonType;
 import net.opengis.xls.v_1_2_0.AddressType;
 import net.opengis.xls.v_1_2_0.NamedPlaceClassification;
 import net.opengis.xls.v_1_2_0.NamedPlaceType;
@@ -23,7 +28,9 @@ import org.postgis.Point;
 import org.postgresql.jdbc4.Jdbc4Array;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LinearRing;
 
 /*
  * Copyright (C) 2011, Emergya (http://www.emergya.es)
@@ -197,6 +204,8 @@ public class GeoUtil {
 
 	public static com.vividsolutions.jts.geom.Point getPoint(
 			WayPointType startPoint) {
+
+		// TODO what if we don't receive coordinates?
 		PositionType ptype = (PositionType) startPoint.getLocation().getValue();
 		PointType pointType = ptype.getPoint();
 		DirectPositionType ctype = pointType.getPos();
@@ -205,5 +214,40 @@ public class GeoUtil {
 				.createPoint(new Coordinate(ctype.getValue().get(0), ctype
 						.getValue().get(1)));
 		return p;
+	}
+
+	public static com.vividsolutions.jts.geom.Geometry getGeometry(
+			PositionType position) {
+
+		Geometry g = null;
+		if (position.getPoint() != null
+				&& position.getPoint().getCoord() != null
+				&& position.getPoint().getCoord().getX() != null) {
+			g = geomFact.createPoint(new Coordinate(position.getPoint()
+					.getCoord().getX().doubleValue(), position.getPoint()
+					.getCoord().getY().doubleValue()));
+		} else if (position.getPolygon() != null) {
+			PolygonType polygon = position.getPolygon();
+
+			List<LinearRing> interiorRings = new LinkedList<LinearRing>();
+			polygon.getInterior();
+			// TODO
+			LinearRing[] holes = interiorRings.toArray(new LinearRing[] {});
+
+			List<Coordinate> coordinateList = new LinkedList<Coordinate>();
+			AbstractRingPropertyType exterior = polygon.getExterior()
+					.getValue();
+			LinearRingType ring = (LinearRingType) exterior.getRing()
+					.getValue();
+			for (CoordType coord : ring.getCoord()) {
+				coordinateList.add(new Coordinate(coord.getX().doubleValue(),
+						coord.getY().doubleValue()));
+			}
+			Coordinate[] coordinates = coordinateList
+					.toArray(new Coordinate[] {});
+			LinearRing shell = geomFact.createLinearRing(coordinates);
+			g = geomFact.createPolygon(shell, holes);
+		}
+		return g;
 	}
 }
