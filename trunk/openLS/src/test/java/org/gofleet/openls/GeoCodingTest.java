@@ -27,32 +27,45 @@ package org.gofleet.openls;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
+
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.stream.FactoryConfigurationError;
+import javax.xml.stream.XMLStreamException;
 
 import net.opengis.gml.v_3_1_1.DirectPositionType;
 import net.opengis.gml.v_3_1_1.PointType;
+import net.opengis.xls.v_1_2_0.AbstractBodyType;
 import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
 import net.opengis.xls.v_1_2_0.AddressType;
-import net.opengis.xls.v_1_2_0.GeocodeRequestType;
 import net.opengis.xls.v_1_2_0.GeocodeResponseListType;
 import net.opengis.xls.v_1_2_0.GeocodeResponseType;
 import net.opengis.xls.v_1_2_0.GeocodedAddressType;
 import net.opengis.xls.v_1_2_0.PositionType;
+import net.opengis.xls.v_1_2_0.ResponseType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeResponseType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodedLocationType;
+import net.opengis.xls.v_1_2_0.XLSType;
 
+import org.apache.axiom.om.OMElement;
+import org.apache.axis2.AxisFault;
+import org.gofleet.openLS.OpenLS;
 import org.gofleet.openLS.ddbb.GeoCoding;
+import org.gofleet.openLS.util.Utils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.xml.sax.SAXException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:applicationContext.xml" })
@@ -60,6 +73,8 @@ public class GeoCodingTest {
 
 	@Autowired
 	GeoCoding geocoding;
+	@Autowired
+	OpenLS openLS;
 
 	@Test
 	public void testReverseGeocoding() {
@@ -91,7 +106,6 @@ public class GeoCodingTest {
 		List<ReverseGeocodedLocationType> res_array = res
 				.getReverseGeocodedLocation();
 		assertNotNull(res_array);
-		int i = 0;
 		assertTrue(res_array.size() > 0);
 		for (ReverseGeocodedLocationType locationType : res_array) {
 			AddressType addressRes = locationType.getAddress();
@@ -104,52 +118,68 @@ public class GeoCodingTest {
 			// Comprobamos que el punto del resultado es el mismo que el del
 			// origen
 			assertTrue(pointRes.equals(point));
-			i++;
 		}
 
 	}
 
 	@Test
-	public void testGeocoding() {
+	public void testGeocoding() throws AxisFault, FileNotFoundException,
+			JAXBException, XMLStreamException, FactoryConfigurationError,
+			SAXException {
+		OMElement resultado = openLS.openLS(Utils.convertFile2OMElement(
+				"/geocodingRequest.xml", XLSType.class));
 
-		// Comprobamos que pasándole un nombre de una calle nos complete los
-		// demas campos
+		Object object = Utils.convertOMElement2Object(resultado, XLSType.class,
+				true);
 
-		String addressee = "Avenida Innovación";
-		assertNotNull(addressee);
+		assertTrue("This is no XLS object", object instanceof XLSType);
 
-		AddressType address = new AddressType();
-		assertNotNull(address);
-		address.setAddressee(addressee);
-		List<AddressType> addressArray = new LinkedList<AddressType>();
+		XLSType xls = (XLSType) object;
 
-		GeocodeRequestType param = new GeocodeRequestType();
-		param.setAddress(addressArray);
-		assertNotNull(param);
+		assertNotNull("The response is null", xls);
 
-		List<List<AbstractResponseParametersType>> listres = geocoding.geocoding(param);
-		
-		GeocodeResponseType res = (GeocodeResponseType) listres.get(0).get(0);
-		// Que el resultado no sea nulo
-		assertNotNull(res);
-		List<GeocodeResponseListType> arrayRes = res.getGeocodeResponseList();
-		int i = 0;
-		int j = 0;
-		// Que el array tenga algun dato
-		assertTrue(arrayRes.size() > 0);
-		for (GeocodeResponseListType list : arrayRes) {
-			List<GeocodedAddressType> arrayAddress = list.getGeocodedAddress();
-			assertTrue(arrayAddress.size() > 0);
-			for (GeocodedAddressType addressType : arrayAddress) {
-				AddressType paramEval = addressType.getAddress();
-				// Comprobamos que cada uno de los parámetros no sea nulo
-				assertNotNull(paramEval.getCountryCode());
-				assertNotNull(paramEval.getLanguage());
-				assertNotNull(paramEval.getPostalCode());
-				assertNotNull(paramEval.getStreetAddress());
-				j++;
+		assertNotNull("The body is null.", xls.getBody());
+
+		List<JAXBElement<? extends AbstractBodyType>> body = xls.getBody();
+
+		assertNotNull("The body is null! How? We have just checked it!", body);
+
+		assertEquals("The body should jave three responses", body.size(), 3);
+
+		for (JAXBElement<? extends AbstractBodyType> body_ : body) {
+			AbstractBodyType o = body_.getValue();
+
+			assertTrue("This is no response!", o instanceof ResponseType);
+
+			ResponseType response = (ResponseType) o;
+
+			assertNotNull("The contents of the body are null? (ResponseType)",
+					response);
+
+			assertEquals("I should have only one response", response
+					.getNumberOfResponses().intValue(), 1);
+
+			assertNotNull("Response parameters are null!",
+					response.getResponseParameters());
+
+			AbstractResponseParametersType arpt = response
+					.getResponseParameters().getValue();
+
+			assertTrue("The response is not a geocode response",
+					arpt instanceof GeocodeResponseType);
+
+			GeocodeResponseType grrt = (GeocodeResponseType) arpt;
+			for (GeocodeResponseListType list : grrt.getGeocodeResponseList()) {
+				List<GeocodedAddressType> arrayAddress = list
+						.getGeocodedAddress();
+				assertTrue(arrayAddress.size() > 0);
+				for (GeocodedAddressType addressType : arrayAddress) {
+					AddressType paramEval = addressType.getAddress();
+					assertNotNull(paramEval.getCountryCode());
+					assertNotNull(paramEval.getStreetAddress());
+					assertNotNull(paramEval.getPlace());
+				}
 			}
-			i++;
 		}
 	}
 }
