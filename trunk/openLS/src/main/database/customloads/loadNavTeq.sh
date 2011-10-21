@@ -93,10 +93,51 @@ $PSQL -c "VACUUM ANALYZE streets;"
 
 NOW=$(date +%s)
 
+echo "Generating custom tables"
+
+$PSQL -c "PERFORM gls_createAllTables('$NOW'::VARCHAR);"
+$PSQL -c "CREATE SEQUENCE id_value$NOW START 1;"
+
+$PSQL -c "INSERT INTO street_$NOW SELECT gid, CASE WHEN st_name IS NULL THEN '' ELSE st_name END, st_GeometryN(the_geom, 1) as geom FROM streets;"
+$PSQL -c "INSERT INTO municipality_subdivision_$NOW SELECT gid, CASE WHEN polygon_nm IS NULL THEN '' ELSE polygon_nm END, the_geom FROM AdminBndy5;"
+$PSQL -c "INSERT INTO country_subdivision_$NOW 	SELECT gid, CASE WHEN polygon_nm IS NULL THEN '' ELSE polygon_nm END, the_geom FROM AdminBndy2;"
+$PSQL -c "INSERT INTO country_$NOW SELECT 1, 'SPA', ST_Union(the_geom) FROM AdminBndy2;"
+$PSQL -c "INSERT INTO municipality_$NOW SELECT nextval('id_value$NOW'), polygon_nm, the geom FROM AdminBndy3;"
+$PSQL -c "INSERT INTO municipality_$NOW SELECT nextval('id_value$NOW'), polygon_nm, the geom FROM AdminBndy4;"
+
+$PSQL -c "CREATE INDEX street_area_idx$NOW ON street_$NOW USING btree (st_area(geometry));"
+$PSQL -c "CREATE INDEX street_geometry_idx$NOW ON street_$NOW USING gist (geometry);"
+$PSQL -c "ALTER TABLE street_$NOW CLUSTER ON street_geometry_idx;"
+$PSQL -c "CREATE INDEX street_id_idx$NOW ON street_$NOW USING btree (id);"
+$PSQL -c "CREATE INDEX street_name_idx$NOW ON street_$NOW USING btree (name);"
+
+$PSQL -c "CREATE INDEX municipality_subdivision_area_idx$NOW ON municipality_subdivision_$NOW USING btree (st_area(geometry));"
+$PSQL -c "CREATE INDEX municipality_subdivision_geometry_idx$NOW ON municipality_subdivision_$NOW USING gist (geometry);"
+$PSQL -c "ALTER TABLE municipality_subdivision_$NOW CLUSTER ON municipality_subdivision_geometry_idx;"
+$PSQL -c "CREATE INDEX municipality_subdivision_id_idx$NOW ON municipality_subdivision_$NOW USING btree (id);"
+$PSQL -c "CREATE INDEX municipality_subdivision_name_idx$NOW ON municipality_subdivision_$NOW USING btree (name);"
+
+$PSQL -c "CREATE INDEX municipality_area_idx$NOW ON municipality_$NOW USING btree (st_area(geometry));"
+$PSQL -c "CREATE INDEX municipality_geometry_idx$NOW ON municipality_$NOW USING gist (geometry);"
+$PSQL -c "ALTER TABLE municipality_$NOW CLUSTER ON municipality_geometry_idx;"
+$PSQL -c "CREATE INDEX municipality_id_idx$NOW ON municipality_$NOW USING btree (id);"
+$PSQL -c "CREATE INDEX municipality_name_idx$NOW ON municipality_$NOW USING btree (name);"
+
+$PSQL -c "CREATE INDEX country_subdivision_area_idx$NOW ON country_subdivision_$NOW USING btree (st_area(geometry));"
+$PSQL -c "CREATE INDEX country_subdivision_geometry_idx$NOW ON country_subdivision_$NOW USING gist (geometry);"
+$PSQL -c "ALTER TABLE country_subdivision_$NOW CLUSTER ON country_subdivision_geometry_idx;"
+$PSQL -c "CREATE INDEX country_subdivision_id_idx$NOW ON country_subdivision_$NOW USING btree (id);"
+$PSQL -c "CREATE INDEX country_subdivision_name_idx$NOW ON country_subdivision_$NOW USING btree (name);"
+
+$PSQL -c "CREATE INDEX country_area_idx$NOW ON country_$NOW USING btree (st_area(geometry));"
+$PSQL -c "CREATE INDEX country_geometry_idx$NOW ON country_$NOW USING gist (geometry);"
+$PSQL -c "ALTER TABLE country_$NOW CLUSTER ON country_geometry_idx;"
+$PSQL -c "CREATE INDEX country_id_idx$NOW ON country_$NOW USING btree (id);"
+$PSQL -c "CREATE INDEX country_name_idx$NOW ON country_$NOW USING btree (name);"
+
 echo "Converting data to PgRouting format"
 
-$PSQL -c "PERFORM gls_createTable('$NOW', 'routing');"
-$PSQL -c "CREATE SEQUENCE routing_$NOW_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1 CYCLE;"
+$PSQL -c "CREATE SEQUENCE routing_id_seq$NOW INCREMENT 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1 CYCLE;"
 
 $PSQL -c "INSERT INTO routing_$NOW
 (SELECT 
@@ -121,7 +162,7 @@ $PSQL -c "INSERT INTO routing_$NOW
         'infinity'::double precision as to_cost,
 	man_linkid::text as rule,
         s.the_geom as geometry,
-        nextval('routing_$NOW_id_seq') as id,
+        nextval('routing_id_seq$NOW') as id,
         s.link_id as gid
 FROM 
 	(SELECT gen.the_geom, gen.link_id, cond.cond_id FROM
@@ -151,7 +192,7 @@ $PSQL -c "INSERT INTO routing_$NOW
         'infinity'::double precision as to_cost,
 	man_linkid::text as rule,
         s.the_geom as geometry,
-        nextval('routing_$NOW_id_seq') as id,
+        nextval('routing_id_seq$NOW') as id,
         s.link_id as gid
 FROM 
 	(SELECT gen.the_geom, gen.link_id, cond.cond_id FROM
@@ -189,7 +230,7 @@ $PSQL -c "INSERT INTO routing_$NOW
         'infinity'::double precision as to_cost,
 	''::text as rule,
         st_geometryn(s.the_geom,1) as geometry,
-        nextval('routing_$NOW_id_seq') as id,
+        nextval('routing_id_seq$NOW') as id,
         s.link_id as gid
 FROM streets s
 WHERE NOT EXISTS(SELECT 1 FROM routing_$NOW r WHERE s.link_id = r.gid));"
@@ -198,7 +239,7 @@ $PSQL -c "SELECT assign_vertex_id('routing_$NOW', 0.000001, 'geometry', 'id');"
 
 echo "Updating views"
 
-$PSQL -c "PERFORM gls_updateTable('$NOW', 'routing');"
+$PSQL -c "PERFORM gls_updateAllTables('$NOW'::varchar);"
 
 echo "Deleting temporary tables"
 
