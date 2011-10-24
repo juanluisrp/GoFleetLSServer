@@ -131,8 +131,26 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.axis2</groupId>
-			<artifactId>axis2-json</artifactId>
+			<artifactId>axis2-spring</artifactId>
 			<version>${axis2ReleaseVersion}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>spring-core</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>spring-beans</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>spring-context</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>spring-web</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<!-- unknown -->
@@ -199,16 +217,11 @@
 			<artifactId>hibernate-spatial-${gisProvider}</artifactId>
 			<version>${hibernateSpatial.version}</version>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-entitymanager</artifactId>
 			<version>${hibernate.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-annotations</artifactId>
-			<version>${hibernate.version}</version>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>com.vividsolutions</groupId>
 			<artifactId>jts</artifactId>
@@ -222,10 +235,16 @@
 			<version>1.4</version>
 		</dependency>
 
+
 		<!-- spring -->
-		<dependency>
+ 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-orm</artifactId>
+			<version>${spring.version}</version>
+		</dependency>
+ 		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
 			<version>${spring.version}</version>
 		</dependency>
 		<dependency>
@@ -243,7 +262,7 @@
 			<artifactId>jsr250-api</artifactId>
 			<version>1.0</version>
 		</dependency>
-
+ 
 		<!-- Others -->
 		<dependency>
 			<groupId>log4j</groupId>
@@ -296,7 +315,7 @@
 		<spring.version>3.0.6.RELEASE</spring.version>
 		<jdbc.version>9.0-801.jdbc4</jdbc.version>
 		<hibernateSpatial.version>1.1</hibernateSpatial.version>
-		<hibernate.version>3.5.6-Final</hibernate.version>
+		<hibernate.version>3.6.0-Final</hibernate.version>
 		<c3p0.version>0.9.1.2</c3p0.version>
 
 		<!-- Database settings -->

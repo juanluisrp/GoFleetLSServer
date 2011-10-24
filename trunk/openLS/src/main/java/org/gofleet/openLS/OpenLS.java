@@ -58,7 +58,7 @@ import org.xml.sax.SAXException;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
-@Controller
+@Controller(value="openLSService")
 @Scope("session")
 public class OpenLS {
 	static Log LOG = LogFactory.getLog(OpenLS.class);
@@ -92,13 +92,17 @@ public class OpenLS {
 	 * 
 	 * @return
 	 */
-	public OMElement test() {
+	public OMElement test(OMElement alive) {
+		LOG.trace("test(" + alive + ")");
+
 		OMFactory fac = OMAbstractFactory.getOMFactory();
 		OMNamespace omNs = fac.createOMNamespace(
-				"http://example1.org/example1", "example1");
+				"http://www.w3.org/2006/01/wsdl/in-out", "example1");
 		OMElement method = fac.createOMElement("echo", omNs);
 		OMElement value = fac.createOMElement("Text", omNs);
 		value.addChild(fac.createOMText(value, "Server Alive"));
+		if (alive != null)
+			value.addChild(alive);
 		method.addChild(value);
 
 		return method;
@@ -113,6 +117,7 @@ public class OpenLS {
 	 * @throws AxisFault
 	 */
 	public OMElement openLS(OMElement parameter) throws AxisFault {
+		LOG.trace("openLS(" + parameter + ")");
 		String method = Utils.getMethod(parameter);
 
 		List<List<AbstractResponseParametersType>> resultado = new LinkedList<List<AbstractResponseParametersType>>();

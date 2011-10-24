@@ -274,13 +274,7 @@ public class Utils {
 
 	static net.opengis.xls.v_1_2_0.XLSType getXLSElement(OMElement parameter)
 			throws JAXBException, XMLStreamException, SAXException {
-
-		Class<XLSType> classType = XLSType.class;
-
-		XLSType xlsType = (XLSType) convertOMElement2Object(parameter,
-				classType);
-
-		return xlsType;
+		return (XLSType) convertOMElement2Object(parameter, XLSType.class);
 	}
 
 	/**
@@ -308,6 +302,7 @@ public class Utils {
 		mar.marshal(tmp, builder);
 
 		OMElement element = builder.getRootElement();
+
 		return element;
 	}
 

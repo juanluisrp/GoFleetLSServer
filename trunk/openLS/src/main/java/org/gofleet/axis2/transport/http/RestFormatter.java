@@ -24,6 +24,7 @@ import org.apache.xmlbeans.impl.common.XmlReaderToWriter;
 public class RestFormatter implements MessageFormatter {
 
 	Log LOG = LogFactory.getLog(RestFormatter.class);
+	private static final XMLOutputFactory XOF = XMLOutputFactory.newInstance();
 
 	public String formatSOAPAction(MessageContext arg0, OMOutputFormat arg1,
 			String arg2) {
@@ -64,8 +65,7 @@ public class RestFormatter implements MessageFormatter {
 	protected XMLStreamWriter getXMLWriter(Writer writer) {
 		try {
 			LOG.trace("getXMLWriter(" + writer + ")");
-			XMLOutputFactory xof = XMLOutputFactory.newInstance();
-			return xof.createXMLStreamWriter(writer);
+			return XOF.createXMLStreamWriter(writer);
 		} catch (XMLStreamException e) {
 			LOG.error(e, e);
 			LOG.error(AxisFault.makeFault(e));
