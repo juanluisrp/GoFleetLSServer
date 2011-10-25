@@ -27,23 +27,51 @@ package org.gofleet.openLS.ddbb;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
+import java.util.List;
+
 import javax.annotation.Resource;
 
+import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
+import net.opengis.xls.v_1_2_0.DirectoryRequestType;
 import net.opengis.xls.v_1_2_0.GeocodeRequestType;
-import net.opengis.xls.v_1_2_0.GeocodeResponseType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
-import net.opengis.xls.v_1_2_0.ReverseGeocodeResponseType;
+
+import org.apache.commons.lang3.StringUtils;
+import org.gofleet.openLS.ddbb.dao.GeoCodingDAO;
 
 @Resource
 public class GeoCoding {
 
-	public ReverseGeocodeResponseType reverseGeocoding(
-			ReverseGeocodeRequestType param) {
-		return null;
+	@Resource
+	private GeoCodingDAO dao;
+
+	public List<List<AbstractResponseParametersType>> directory(
+			DirectoryRequestType param) {
+		return dao.directory(param);
 	}
 
-	public GeocodeResponseType geocoding(GeocodeRequestType param) {
-		return null;
+	public List<List<AbstractResponseParametersType>> reverseGeocode(
+			ReverseGeocodeRequestType param) {
+		return dao.reverseGeocode(param);
+	}
+
+	public List<List<AbstractResponseParametersType>> geocoding(
+			GeocodeRequestType param) {
+		return dao.geocoding(param);
+	}
+
+	/**
+	 * Check if rules contains method, ignoring case.
+	 * 
+	 * @param rules
+	 * @param method
+	 * @return
+	 */
+	public boolean equals(String[] rules, String method) {
+		for (String rule : rules)
+			if (StringUtils.equalsIgnoreCase(method, rule))
+				return true;
+		return false;
 	}
 
 }

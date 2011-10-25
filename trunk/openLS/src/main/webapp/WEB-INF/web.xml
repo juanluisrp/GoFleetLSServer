@@ -4,9 +4,16 @@
       "http://java.sun.com/dtd/web-app_2_3.dtd">
 
 <web-app>
+	<display-name>GofleetLS</display-name>
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>WEB-INF/classes/applicationContext.xml</param-value>
+	</context-param>
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
 	<servlet>
 		<servlet-name>AxisServlet</servlet-name>
-		<display-name>Apache-Axis Servlet</display-name>
 		<servlet-class>org.apache.axis2.transport.http.AxisServlet</servlet-class>
 		<load-on-startup>1</load-on-startup>
 	</servlet>

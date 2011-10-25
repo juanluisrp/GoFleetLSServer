@@ -15,10 +15,7 @@
 	<tx:annotation-driven transaction-manager="transactionManager"
 		proxy-target-class="true" />
 	<context:annotation-config />
-	<context:component-scan base-package="org.gofleet.openLS.ddbb.dao" />
 	<context:component-scan base-package="org.gofleet.openLS.ddbb.bean" />
-	<context:component-scan base-package="org.gofleet.openLS.ddbb" />
-	<context:component-scan base-package="org.gofleet.openLS" />
 
 	<bean id="propertyConfigurer"
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
@@ -36,14 +33,17 @@
 		<property name="username" value="${jdbc.username}" />
 		<property name="password" value="${jdbc.password}" />
 
-		<property name="maxIdle" value="10" />
+		<property name="maxIdle" value="100" />
+		<property name="initialSize" value="20" />
+		<property name="minIdle" value="10" />
 		<property name="maxActive" value="100" />
-		<property name="maxWait" value="1000" />
-		<property name="validationQuery" value="select 1" />
+		<property name="maxWait" value="15000" />
+		<property name="validationQuery" value="select 1;" />
+		
 		<property name="testOnBorrow" value="false" />
 		<property name="testWhileIdle" value="true" />
-		<property name="timeBetweenEvictionRunsMillis" value="1200000" />
-		<property name="minEvictableIdleTimeMillis" value="1800000" />
+		<property name="timeBetweenEvictionRunsMillis" value="12000" />
+		<property name="minEvictableIdleTimeMillis" value="18000" />
 		<property name="numTestsPerEvictionRun" value="5" />
 		<property name="defaultAutoCommit" value="false" />
 	</bean>
@@ -57,7 +57,11 @@
 		<property name="hibernateProperties">
 			<props>
 				<prop key="hibernate.dialect">${jdbc.hibernate.dialect}</prop>
-				<prop key="hibernate.show_sql">false</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.connection.autocommit">true</prop>
+				<prop key="hibernate.dialect">org.hibernatespatial.postgis.PostgisDialect</prop>
+				<prop key="hibernate.default_entity_mode">pojo</prop>
+				<prop key="hibernate.generate_statistics">false</prop>
 			</props>
 		</property>
 	</bean>
@@ -67,16 +71,15 @@
 		<property name="sessionFactory" ref="sessionFactory" />
 	</bean>
 
-
-
 	<!-- Application Beans -->
-	<bean id="openLS" class="org.gofleet.openLS.OpenLS">
-	</bean>
 	<bean id="routingDAO" class="org.gofleet.openLS.ddbb.dao.RoutingDAO">
 		<property name="sessionFactory" ref="sessionFactory" />
 	</bean>
-	<bean id="routing" class="org.gofleet.openLS.ddbb.Routing">
+	<bean id="geoCodingDAO" class="org.gofleet.openLS.ddbb.dao.GeoCodingDAO">
+		<property name="sessionFactory" ref="sessionFactory" />
 	</bean>
-	<bean id="geocoding" class="org.gofleet.openLS.ddbb.GeoCoding">
-	</bean>
+	<bean id="routing" class="org.gofleet.openLS.ddbb.Routing" />
+	<bean id="geocoding" class="org.gofleet.openLS.ddbb.GeoCoding" />
+	<bean id="openLSService" class="org.gofleet.openLS.OpenLS"/>
+
 </beans>  
