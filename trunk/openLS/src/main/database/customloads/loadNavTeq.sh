@@ -4,7 +4,7 @@
 #Customize the following variables with your own environment:
 DATABASE="gofleetls"
 USERNAME="gofleetls"
-HOST="127.0.0.1"
+HOST="192.168.1.175"
 PORT="5432"
 SHP_PATH="/var/svn/openls-seneca/trunk/NavteqQ22011_Andalucia/K2AM11100EK2000AAAEX/";
 
@@ -68,7 +68,7 @@ $PSQL -c "DROP TABLE IF EXISTS zlevels;"
 
 for f in *.shp
 do
-        shp2pgsql -W Latin10 -c $f -s 4326 -I | $PSQL
+        shp2pgsql -W Latin10 -s 4326 -I -c $f | $PSQL
 done;
 
 

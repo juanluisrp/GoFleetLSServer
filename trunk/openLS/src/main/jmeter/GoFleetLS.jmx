@@ -17,7 +17,7 @@
           <stringProp name="LoopController.loops">1</stringProp>
         </elementProp>
         <stringProp name="ThreadGroup.num_threads">100</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">5</stringProp>
         <longProp name="ThreadGroup.start_time">1317828719000</longProp>
         <longProp name="ThreadGroup.end_time">1317828719000</longProp>
         <boolProp name="ThreadGroup.scheduler">false</boolProp>
@@ -30,7 +30,7 @@
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
-          <stringProp name="SoapSampler.URL_DATA">http://localhost:8080/openLS/services/OpenLS/openLS</stringProp>
+          <stringProp name="SoapSampler.URL_DATA">http://192.168.1.175:8080/openLS/services/OpenLS/openLS</stringProp>
           <stringProp name="HTTPSamper.xml_data">&lt;ns1:XLS xmlns:ns1=&quot;http://www.opengis.net/xls&quot; xmlns:gml=&quot;http://www.opengis.net/gml&quot; &gt;
 	&lt;ns1:RequestHeader /&gt;
 	&lt;ns1:Request methodName=&quot;RouteRequest&quot;&gt;
@@ -74,7 +74,7 @@
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
-          <stringProp name="SoapSampler.URL_DATA">http://localhost:8080/openLS/services/OpenLS/openLS</stringProp>
+          <stringProp name="SoapSampler.URL_DATA">http://192.168.1.175:8080/openLS/services/OpenLS/openLS</stringProp>
           <stringProp name="HTTPSamper.xml_data">&lt;ns1:XLS xmlns:ns1=&quot;http://www.opengis.net/xls&quot; xmlns:ns2=&quot;http://www.opengis.net/gml&quot; &gt;&lt;ns1:RequestHeader /&gt;&lt;ns1:Request methodName=&quot;RevGcReq&quot;&gt;&lt;ns1:ReverseGeocodeRequest&gt;&lt;ns1:Position&gt;&lt;ns2:Point&gt;&lt;ns2:pos&gt;-71.46 41.81&lt;/ns2:pos&gt;&lt;/ns2:Point&gt;&lt;/ns1:Position&gt;&lt;ns1:ReverseGeocodePreference&gt;StreetAddress&lt;/ns1:ReverseGeocodePreference&gt;&lt;/ns1:ReverseGeocodeRequest&gt;&lt;/ns1:Request&gt;&lt;/ns1:XLS&gt;</stringProp>
           <stringProp name="SoapSampler.xml_data_file"></stringProp>
           <stringProp name="SoapSampler.SOAP_ACTION"></stringProp>
@@ -86,7 +86,7 @@
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
-          <stringProp name="SoapSampler.URL_DATA">http://localhost:8080/openLS/services/OpenLS/openLS</stringProp>
+          <stringProp name="SoapSampler.URL_DATA">http://192.168.1.175:8080/openLS/services/OpenLS/openLS</stringProp>
           <stringProp name="HTTPSamper.xml_data">&lt;ns1:XLS xmlns:ns1=&quot;http://www.opengis.net/xls&quot; xmlns:gml=&quot;http://www.opengis.net/gml&quot;&gt;
 	&lt;ns1:RequestHeader /&gt;
 	&lt;ns1:Request methodName=&quot;RevGcReq&quot;&gt;
