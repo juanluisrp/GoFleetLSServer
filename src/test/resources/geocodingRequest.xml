@@ -5,16 +5,11 @@
 	<Request maximumResponses="10" methodName="GeocodeRequest"
 		requestID="0" version="1.0">
 		<GeocodeRequest>
-			<Address countryCode="SPA">
-				<StreetAddress>
-					<Street>Innovación</Street>
-				</StreetAddress>
-			</Address>
 			<Address>
 				<Place type="Municipality">Sevilla</Place>
-			</Address>
-			<Address>
-				<Place type="Municipality">magi</Place>
+				<StreetAddress>
+					<Street>Sierpes</Street>
+				</StreetAddress>
 			</Address>
 		</GeocodeRequest>
 	</Request>

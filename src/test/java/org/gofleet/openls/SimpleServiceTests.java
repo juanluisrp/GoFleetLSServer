@@ -42,15 +42,15 @@ public class SimpleServiceTests {
 				XLSType.class);
 	}
 
-	@Test(timeout = 20000)
-	@Repeat(value = 10)
+	@Test(timeout = 300000)
+//	@Repeat(value = 10)
 	public void testEmptyRoute() throws AxisFault, FileNotFoundException,
 			JAXBException {
 		openLS.openLS(determineRouteRequest);
 	}
 
-	@Test(timeout = 5000)
-	@Repeat(value = 8)
+    @Test //(timeout = 5000)
+//	@Repeat(value = 8)
 	public void testEmptyGeocoding() throws AxisFault, FileNotFoundException,
 			JAXBException {
 		openLS.openLS(geocodingRequest);
@@ -64,7 +64,7 @@ public class SimpleServiceTests {
 	}
 
 	@Test(timeout = 5000)
-	@Repeat(value = 8)
+//	@Repeat(value = 8)
 	public void testEmptyReverseGeocoding() throws AxisFault,
 			FileNotFoundException, JAXBException {
 		openLS.openLS(reverseGeocodingRequest);

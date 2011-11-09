@@ -6,7 +6,13 @@
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="Variables definidas por el Usuario" enabled="true">
-        <collectionProp name="Arguments.arguments"/>
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="ip_address" elementType="Argument">
+            <stringProp name="Argument.name">ip_address</stringProp>
+            <stringProp name="Argument.value">192.168.1.175</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
       </elementProp>
       <stringProp name="TestPlan.user_define_classpath"></stringProp>
     </TestPlan>
@@ -16,7 +22,7 @@
           <boolProp name="LoopController.continue_forever">false</boolProp>
           <stringProp name="LoopController.loops">1</stringProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">100</stringProp>
+        <stringProp name="ThreadGroup.num_threads">10</stringProp>
         <stringProp name="ThreadGroup.ramp_time">5</stringProp>
         <longProp name="ThreadGroup.start_time">1317828719000</longProp>
         <longProp name="ThreadGroup.end_time">1317828719000</longProp>
@@ -26,11 +32,70 @@
         <stringProp name="ThreadGroup.delay"></stringProp>
       </ThreadGroup>
       <hashTree>
+        <SoapSampler guiclass="SoapSamplerGui" testclass="SoapSampler" testname="Test" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="SoapSampler.URL_DATA">http://${ip_address}:8080/openLS/services/OpenLS/test</stringProp>
+          <stringProp name="HTTPSamper.xml_data"></stringProp>
+          <stringProp name="SoapSampler.xml_data_file"></stringProp>
+          <stringProp name="SoapSampler.SOAP_ACTION"></stringProp>
+          <stringProp name="SoapSampler.SEND_SOAP_ACTION">false</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">false</boolProp>
+        </SoapSampler>
+        <hashTree/>
+        <SoapSampler guiclass="SoapSamplerGui" testclass="SoapSampler" testname="Geocoding-XML" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="SoapSampler.URL_DATA">http://${ip_address}:8080/openLS/services/OpenLS/openLS</stringProp>
+          <stringProp name="HTTPSamper.xml_data">&lt;ns1:XLS xmlns:ns1=&quot;http://www.opengis.net/xls&quot; xmlns:gml=&quot;http://www.opengis.net/gml&quot;&gt;
+	&lt;ns1:RequestHeader /&gt;
+	&lt;ns1:Request methodName=&quot;GeocodeRequest&quot;&gt;&lt;ns1:GeocodeRequest&gt;
+                        &lt;ns1:Address&gt;
+                                &lt;ns1:Place type=&quot;Municipality&quot;&gt;Sevilla&lt;/ns1:Place&gt;
+                                &lt;StreetAddress&gt;
+                                        &lt;Street&gt;Sierpes&lt;/Street&gt;
+                                &lt;/StreetAddress&gt;
+                        &lt;/ns1:Address&gt;
+                &lt;/ns1:GeocodeRequest&gt;
+	&lt;/ns1:Request&gt;
+&lt;/ns1:XLS&gt;</stringProp>
+          <stringProp name="SoapSampler.xml_data_file"></stringProp>
+          <stringProp name="SoapSampler.SOAP_ACTION"></stringProp>
+          <stringProp name="SoapSampler.SEND_SOAP_ACTION">false</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">false</boolProp>
+        </SoapSampler>
+        <hashTree/>
+        <SoapSampler guiclass="SoapSamplerGui" testclass="SoapSampler" testname="ReverseGeocoding-XML" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="SoapSampler.URL_DATA">http://${ip_address}:8080/openLS/services/OpenLS/openLS</stringProp>
+          <stringProp name="HTTPSamper.xml_data">&lt;ns1:XLS xmlns:ns1=&quot;http://www.opengis.net/xls&quot; xmlns:gml=&quot;http://www.opengis.net/gml&quot;&gt;
+	&lt;ns1:RequestHeader /&gt;
+	&lt;ns1:Request methodName=&quot;RevGcReq&quot;&gt;
+		&lt;ns1:ReverseGeocodeRequest&gt;
+			&lt;ns1:Position&gt;
+				&lt;gml:Point&gt;
+					&lt;gml:pos&gt;-5.93142 37.40709&lt;/gml:pos&gt;
+				&lt;/gml:Point&gt;
+			&lt;/ns1:Position&gt;
+			&lt;ns1:ReverseGeocodePreference&gt;StreetAddress&lt;/ns1:ReverseGeocodePreference&gt;
+		&lt;/ns1:ReverseGeocodeRequest&gt;
+	&lt;/ns1:Request&gt;
+&lt;/ns1:XLS&gt;</stringProp>
+          <stringProp name="SoapSampler.xml_data_file"></stringProp>
+          <stringProp name="SoapSampler.SOAP_ACTION"></stringProp>
+          <stringProp name="SoapSampler.SEND_SOAP_ACTION">false</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">false</boolProp>
+        </SoapSampler>
+        <hashTree/>
         <SoapSampler guiclass="SoapSamplerGui" testclass="SoapSampler" testname="Routing-XML" enabled="true">
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
-          <stringProp name="SoapSampler.URL_DATA">http://192.168.1.175:8080/openLS/services/OpenLS/openLS</stringProp>
+          <stringProp name="SoapSampler.URL_DATA">http://${ip_address}:8080/openLS/services/OpenLS/openLS</stringProp>
           <stringProp name="HTTPSamper.xml_data">&lt;ns1:XLS xmlns:ns1=&quot;http://www.opengis.net/xls&quot; xmlns:gml=&quot;http://www.opengis.net/gml&quot; &gt;
 	&lt;ns1:RequestHeader /&gt;
 	&lt;ns1:Request methodName=&quot;RouteRequest&quot;&gt;
@@ -41,21 +106,21 @@
 					&lt;ns1:StartPoint&gt;
 						&lt;ns1:Position&gt;
 							&lt;gml:Point&gt;
-								&lt;gml:pos&gt;1.2 0.2&lt;/gml:pos&gt;
+								&lt;gml:pos&gt;-5.93142 37.40709&lt;/gml:pos&gt;
 							&lt;/gml:Point&gt;
 						&lt;/ns1:Position&gt;
 					&lt;/ns1:StartPoint&gt;
 					&lt;ns1:ViaPoint&gt;
 						&lt;ns1:Position&gt;
 							&lt;gml:Point&gt;
-								&lt;gml:pos&gt;0.3 0.9&lt;/gml:pos&gt;
+								&lt;gml:pos&gt;-5.89972 37.42268&lt;/gml:pos&gt;
 							&lt;/gml:Point&gt;
 						&lt;/ns1:Position&gt;
 					&lt;/ns1:ViaPoint&gt;
 					&lt;ns1:EndPoint&gt;
 						&lt;ns1:Position&gt;
 							&lt;gml:Point&gt;
-								&lt;gml:pos&gt;0 0&lt;/gml:pos&gt;
+								&lt;gml:pos&gt;-5.97659 37.39100&lt;/gml:pos&gt;
 							&lt;/gml:Point&gt;
 						&lt;/ns1:Position&gt;
 					&lt;/ns1:EndPoint&gt;
@@ -70,34 +135,316 @@
           <boolProp name="HTTPSampler.use_keepalive">false</boolProp>
         </SoapSampler>
         <hashTree/>
-        <SoapSampler guiclass="SoapSamplerGui" testclass="SoapSampler" testname="Geocoding-XML" enabled="true">
-          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
-            <collectionProp name="Arguments.arguments"/>
-          </elementProp>
-          <stringProp name="SoapSampler.URL_DATA">http://192.168.1.175:8080/openLS/services/OpenLS/openLS</stringProp>
-          <stringProp name="HTTPSamper.xml_data">&lt;ns1:XLS xmlns:ns1=&quot;http://www.opengis.net/xls&quot; xmlns:ns2=&quot;http://www.opengis.net/gml&quot; &gt;&lt;ns1:RequestHeader /&gt;&lt;ns1:Request methodName=&quot;RevGcReq&quot;&gt;&lt;ns1:ReverseGeocodeRequest&gt;&lt;ns1:Position&gt;&lt;ns2:Point&gt;&lt;ns2:pos&gt;-71.46 41.81&lt;/ns2:pos&gt;&lt;/ns2:Point&gt;&lt;/ns1:Position&gt;&lt;ns1:ReverseGeocodePreference&gt;StreetAddress&lt;/ns1:ReverseGeocodePreference&gt;&lt;/ns1:ReverseGeocodeRequest&gt;&lt;/ns1:Request&gt;&lt;/ns1:XLS&gt;</stringProp>
-          <stringProp name="SoapSampler.xml_data_file"></stringProp>
-          <stringProp name="SoapSampler.SOAP_ACTION"></stringProp>
-          <stringProp name="SoapSampler.SEND_SOAP_ACTION">false</stringProp>
-          <boolProp name="HTTPSampler.use_keepalive">false</boolProp>
-        </SoapSampler>
+        <Summariser guiclass="SummariserGui" testclass="Summariser" testname="Generar Resumen de Resultados" enabled="true"/>
         <hashTree/>
-        <SoapSampler guiclass="SoapSamplerGui" testclass="SoapSampler" testname="ReverseGeocoding-XML" enabled="true">
+        <ResultCollector guiclass="StatGraphVisualizer" testclass="ResultCollector" testname="Gráfico" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>true</xml>
+              <fieldNames>false</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="DistributionGraphVisualizer" testclass="ResultCollector" testname="Gráfico de Distribución (alfa)" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>true</xml>
+              <fieldNames>false</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="GraphVisualizer" testclass="ResultCollector" testname="Gráfico de Resultados" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>true</xml>
+              <fieldNames>false</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="StatVisualizer" testclass="ResultCollector" testname="Informe Agregado" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>true</xml>
+              <fieldNames>false</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Reporte resumen" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>true</xml>
+              <fieldNames>false</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="GraphAccumVisualizer" testclass="ResultCollector" testname="Resultados de Gráfico Completo" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>true</xml>
+              <fieldNames>false</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="SplineVisualizer" testclass="ResultCollector" testname="Visualizador Spline" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>true</xml>
+              <fieldNames>false</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="Ver Árbol de Resultados" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>true</xml>
+              <fieldNames>false</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Grupo de Hilos" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Controlador Loop" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">10</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">3</stringProp>
+        <longProp name="ThreadGroup.start_time">1317828719000</longProp>
+        <longProp name="ThreadGroup.end_time">1317828719000</longProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+      </ThreadGroup>
+      <hashTree>
+        <SoapSampler guiclass="SoapSamplerGui" testclass="SoapSampler" testname="Routing-XML" enabled="true">
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
-          <stringProp name="SoapSampler.URL_DATA">http://192.168.1.175:8080/openLS/services/OpenLS/openLS</stringProp>
-          <stringProp name="HTTPSamper.xml_data">&lt;ns1:XLS xmlns:ns1=&quot;http://www.opengis.net/xls&quot; xmlns:gml=&quot;http://www.opengis.net/gml&quot;&gt;
+          <stringProp name="SoapSampler.URL_DATA">http://${ip_address}:8080/openLS/services/OpenLS/openLS</stringProp>
+          <stringProp name="HTTPSamper.xml_data">&lt;ns1:XLS xmlns:ns1=&quot;http://www.opengis.net/xls&quot; xmlns:gml=&quot;http://www.opengis.net/gml&quot; &gt;
 	&lt;ns1:RequestHeader /&gt;
-	&lt;ns1:Request methodName=&quot;RevGcReq&quot;&gt;
-		&lt;ns1:ReverseGeocodeRequest&gt;
-			&lt;ns1:Position&gt;
-				&lt;gml:Point&gt;
-					&lt;gml:pos&gt;-71.46 41.81&lt;/gml:pos&gt;
-				&lt;/gml:Point&gt;
-			&lt;/ns1:Position&gt;
-			&lt;ns1:ReverseGeocodePreference&gt;StreetAddress&lt;/ns1:ReverseGeocodePreference&gt;
-		&lt;/ns1:ReverseGeocodeRequest&gt;
+	&lt;ns1:Request methodName=&quot;RouteRequest&quot;&gt;
+		&lt;ns1:DetermineRouteRequest&gt;
+			&lt;ns1:RoutePlan&gt;
+				&lt;ns1:RoutePreference&gt;Fastest&lt;/ns1:RoutePreference&gt;
+				&lt;ns1:WayPointList&gt;
+					&lt;ns1:StartPoint&gt;
+						&lt;ns1:Position&gt;
+							&lt;gml:Point&gt;
+								&lt;gml:pos&gt;-5.93142 37.40709&lt;/gml:pos&gt;
+							&lt;/gml:Point&gt;
+						&lt;/ns1:Position&gt;
+					&lt;/ns1:StartPoint&gt;
+					&lt;ns1:ViaPoint&gt;
+						&lt;ns1:Position&gt;
+							&lt;gml:Point&gt;
+								&lt;gml:pos&gt;-5.89972 37.42268&lt;/gml:pos&gt;
+							&lt;/gml:Point&gt;
+						&lt;/ns1:Position&gt;
+					&lt;/ns1:ViaPoint&gt;
+					&lt;ns1:EndPoint&gt;
+						&lt;ns1:Position&gt;
+							&lt;gml:Point&gt;
+								&lt;gml:pos&gt;-5.97659 37.39100&lt;/gml:pos&gt;
+							&lt;/gml:Point&gt;
+						&lt;/ns1:Position&gt;
+					&lt;/ns1:EndPoint&gt;
+				&lt;/ns1:WayPointList&gt;
+			&lt;/ns1:RoutePlan&gt;
+		&lt;/ns1:DetermineRouteRequest&gt;
 	&lt;/ns1:Request&gt;
 &lt;/ns1:XLS&gt;</stringProp>
           <stringProp name="SoapSampler.xml_data_file"></stringProp>

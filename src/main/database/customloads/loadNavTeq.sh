@@ -141,6 +141,11 @@ $PSQL -c "ALTER TABLE country_$NOW CLUSTER ON country_geometry_idx$NOW;"
 $PSQL -c "CREATE INDEX country_id_idx$NOW ON country_$NOW USING btree (id);"
 $PSQL -c "CREATE INDEX country_name_idx$NOW ON country_$NOW USING btree (name);"
 
+$PSQL -c "CREATE INDEX routing_$NOW_gid_idx ON routing_$NOW (gid ASC NULLS LAST);"
+$PSQL -c "CREATE INDEX routing_$NOW_id_idx ON routing_$NOW (id ASC NULLS LAST);"
+$PSQL -c "CREATE INDEX routing_$NOW_source_idx ON routing_$NOW (source ASC NULLS LAST);"
+$PSQL -c "CREATE INDEX routing_$NOW_target_idx ON routing_$NOW (target ASC NULLS LAST);"
+
 echo "Converting data to PgRouting format"
 
 $PSQL -c "CREATE SEQUENCE routing_id_seq$NOW INCREMENT 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1 CYCLE;"
@@ -242,6 +247,29 @@ FROM streets s
 WHERE NOT EXISTS(SELECT 1 FROM routing_$NOW r WHERE s.link_id = r.gid));"
 
 $PSQL -c "SELECT assign_vertex_id('routing_$NOW', 0.000001, 'geometry', 'id');"
+
+$PSQL -c "INSERT INTO routing_$NOW
+(SELECT
+        nextval('routing_id_seq$NOW') as id,
+        source.gid as gid,
+        source.cost as cost,
+        source.reverse_cost as reverse_cost,
+        source.source as source,
+        source.target as target,
+        source.x1 as x1,
+        source.y1 as y1,
+        source.x2 as x2,
+        source.y2 as y2,
+        'infinity'::double precision as to_cost,
+        target.gid::text as rule,
+        source.geometry as geometry
+FROM 
+	(SELECT r.*, z.z_level FROM routing r, zlevels z where r.gid = z.link_id order by z.point_num = (select max(point_num) from zlevels as l where l.link_id = z.link_id)) as source, 
+	(SELECT r.source, z.z_level FROM routing r, zlevels z where r.gid = z.link_id and z.point_num = (select max(point_num) from zlevels as l where l.link_id = z.link_id)) as target
+WHERE source.target = target.source
+AND source.z_level <> target.z_level);"
+
+$PSQL -c "DELETE FROM routing_$NOW r WHERE EXISTS (SELECT 1 FROM routing s WHERE s.gid = r.gid AND s.id <> r.id AND r.rule LIKE '');" 
 
 echo "Updating views"
 

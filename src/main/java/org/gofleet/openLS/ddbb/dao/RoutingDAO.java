@@ -123,6 +123,7 @@ public class RoutingDAO {
 				criteria.addOrder(StDistance.asc("geometry", p));
 				criteria.setProjection(Projections.id());
 				criteria.setMaxResults(1);
+				criteria.setCacheable(true);
 				return (Integer) criteria.uniqueResult();
 			}
 		};
@@ -214,7 +215,10 @@ public class RoutingDAO {
 								for (Coordinate coord : geometry
 										.getCoordinates())
 									coordinates.add(coord);
-								cost += new Double(step[1]);
+								Double tmp_cost = new Double(step[1]);
+								if (!(tmp_cost.isInfinite() || tmp_cost.isNaN())) {
+									cost += tmp_cost;
+								}
 								LOG.trace("New cost " + cost);
 							} else
 								LOG.trace("Repeating step " + current);
@@ -243,7 +247,10 @@ public class RoutingDAO {
 			private RouteSummaryType getRouteSummary(Double cost) {
 				RouteSummaryType res = new RouteSummaryType();
 				DistanceType coste = new DistanceType();
-				coste.setValue(BigDecimal.valueOf(cost));
+				if (cost.isInfinite() || cost.isNaN())
+					coste.setValue(BigDecimal.valueOf(0d));
+				else
+					coste.setValue(BigDecimal.valueOf(cost));
 				res.setTotalDistance(coste);
 				return res;
 			}

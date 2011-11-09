@@ -28,7 +28,9 @@
 package org.gofleet.openLS.ddbb.dao;
 
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.sql.CallableStatement;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedList;
@@ -91,6 +93,8 @@ public class GeoCodingDAO {
 				List<List<AbstractResponseParametersType>> res = new LinkedList<List<AbstractResponseParametersType>>();
 				PositionType position = param.getPosition();
 
+				position.getPoint().getPos().getValue();
+
 				Geometry geometry = GeoUtil.getGeometry(position);
 
 				List<AbstractResponseParametersType> res_ = new LinkedList<AbstractResponseParametersType>();
@@ -99,8 +103,8 @@ public class GeoCodingDAO {
 				@SuppressWarnings("deprecation")
 				CallableStatement consulta = session.connection().prepareCall(
 						"{call gls_reverse_geocoding(?)}");
-
-				consulta.setObject(1, geometry);
+				PGgeometry geom = new PGgeometry(geometry.toText());
+				consulta.setObject(1, geom);
 
 				LOG.debug(consulta);
 
@@ -114,33 +118,34 @@ public class GeoCodingDAO {
 						geocode.getAddress().setStreetAddress(
 								new StreetAddressType());
 					for (int i = 1; i < o.getMetaData().getColumnCount(); i++) {
+						String value = new String(o.getString(i).getBytes(), Charset.forName("ISO-8859-1"));
 						if (o.getMetaData().getColumnName(i).equals("street")) {
 							StreetNameType street = new StreetNameType();
-							street.setValue(o.getString(i));
-							street.setOfficialName(o.getString(i));
+							street.setValue(value);
+							street.setOfficialName(value);
 							geocode.getAddress().getStreetAddress().getStreet()
 									.add(street);
 						} else if (o.getMetaData().getColumnName(i)
 								.equals("munsub")) {
 							NamedPlaceType place = new NamedPlaceType();
-							place.setValue(o.getString(i));
+							place.setValue(value);
 							place.setType(NamedPlaceClassification.MUNICIPALITY_SUBDIVISION);
 							geocode.getAddress().getPlace().add(place);
 						} else if (o.getMetaData().getColumnName(i)
 								.equals("mun")) {
 							NamedPlaceType place = new NamedPlaceType();
-							place.setValue(o.getString(i));
+							place.setValue(value);
 							place.setType(NamedPlaceClassification.MUNICIPALITY);
 							geocode.getAddress().getPlace().add(place);
 						} else if (o.getMetaData().getColumnName(i)
 								.equals("subcountry")) {
 							NamedPlaceType place = new NamedPlaceType();
-							place.setValue(o.getString(i));
+							place.setValue(value);
 							place.setType(NamedPlaceClassification.COUNTRY_SUBDIVISION);
 							geocode.getAddress().getPlace().add(place);
 						} else if (o.getMetaData().getColumnName(i)
 								.equals("country")) {
-							geocode.getAddress().setCountryCode(o.getString(i));
+							geocode.getAddress().setCountryCode(value);
 						}
 					}
 					try {
@@ -149,10 +154,10 @@ public class GeoCodingDAO {
 					} catch (Throwable t) {
 						LOG.error("Error extracting data from database.", t);
 					}
-					res_.add(grt);
-
-					res.add(res_);
 				}
+				res_.add(grt);
+
+				res.add(res_);
 				return res;
 			}
 

@@ -220,12 +220,20 @@ public class GeoUtil {
 			PositionType position) {
 
 		Geometry g = null;
-		if (position.getPoint() != null
-				&& position.getPoint().getCoord() != null
-				&& position.getPoint().getCoord().getX() != null) {
-			g = geomFact.createPoint(new Coordinate(position.getPoint()
-					.getCoord().getX().doubleValue(), position.getPoint()
-					.getCoord().getY().doubleValue()));
+
+		if (position.getPoint() != null) {
+			if (position.getPoint().getCoord() != null
+					&& position.getPoint().getCoord().getX() != null) {
+				g = geomFact.createPoint(new Coordinate(position.getPoint()
+						.getCoord().getX().doubleValue(), position.getPoint()
+						.getCoord().getY().doubleValue()));
+			} else if (position.getPoint().getPos() != null
+					&& position.getPoint().getPos().getValue() != null
+					&& position.getPoint().getPos().getValue().size() == 2) {
+				g = geomFact.createPoint(new Coordinate(position.getPoint()
+						.getPos().getValue().get(0), position.getPoint()
+						.getPos().getValue().get(1)));
+			}
 		} else if (position.getPolygon() != null) {
 			PolygonType polygon = position.getPolygon();
 
