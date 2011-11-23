@@ -39,7 +39,6 @@ import javax.xml.bind.JAXBException;
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLStreamException;
 
-import net.opengis.gml.v_3_1_1.PointType;
 import net.opengis.xls.v_1_2_0.AbstractBodyType;
 import net.opengis.xls.v_1_2_0.AbstractResponseParametersType;
 import net.opengis.xls.v_1_2_0.AddressType;
@@ -51,8 +50,6 @@ import net.opengis.xls.v_1_2_0.ReverseGeocodeResponseType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodedLocationType;
 import net.opengis.xls.v_1_2_0.XLSType;
 
-import org.apache.axiom.om.OMElement;
-import org.apache.axis2.AxisFault;
 import org.gofleet.openLS.OpenLS;
 import org.gofleet.openLS.ddbb.GeoCoding;
 import org.gofleet.openLS.util.Utils;
@@ -73,17 +70,11 @@ public class GeoCodingTest {
 	OpenLS openLS;
 
 	@Test
-	public void testReverseGeocoding() throws AxisFault, FileNotFoundException,
-			JAXBException, XMLStreamException, FactoryConfigurationError, SAXException {
-		OMElement resultado = openLS.openLS(Utils.convertFile2OMElement(
-				"/reverseGeocoding.xml", XLSType.class));
-
-		Object object = Utils.convertOMElement2Object(resultado, XLSType.class,
-				true);
-
-		assertTrue("This is no XLS object", object instanceof XLSType);
-
-		XLSType xls = (XLSType) object;
+	public void testReverseGeocoding() throws FileNotFoundException,
+			JAXBException, XMLStreamException, FactoryConfigurationError,
+			SAXException {
+		XLSType xls = openLS.openLS(Utils.convertFile2XLSType(
+				"/reverseGeocoding.xml", XLSType.class)).getValue();
 
 		assertNotNull("The response is null", xls);
 
@@ -129,22 +120,17 @@ public class GeoCodingTest {
 				assertNotNull(addressRes.getCountryCode());
 				assertNotNull(addressRes.getStreetAddress());
 				assertNotNull(addressRes.getStreetAddress().getStreet());
-				assertEquals(addressRes.getStreetAddress().getStreet().size(), 1);
+				assertEquals(addressRes.getStreetAddress().getStreet().size(),
+						1);
 			}
 		}
 	}
 
 	@Test
-	public void testGeocoding() throws AxisFault, FileNotFoundException,
-			JAXBException, XMLStreamException, FactoryConfigurationError,
-			SAXException {
-		OMElement resultado = openLS.openLS(Utils.convertFile2OMElement(
-				"/geocodingRequest.xml", XLSType.class));
-
-		Object object = Utils.convertOMElement2Object(resultado, XLSType.class,
-				true);
-
-		assertTrue("This is no XLS object", object instanceof XLSType);
+	public void testGeocoding() throws FileNotFoundException, JAXBException,
+			XMLStreamException, FactoryConfigurationError, SAXException {
+		XLSType object = openLS.openLS(Utils.convertFile2XLSType(
+				"/geocodingRequest.xml", XLSType.class)).getValue();
 
 		XLSType xls = (XLSType) object;
 

@@ -2,12 +2,11 @@ package org.gofleet.openls;
 
 import java.io.FileNotFoundException;
 
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 
 import net.opengis.xls.v_1_2_0.XLSType;
 
-import org.apache.axiom.om.OMElement;
-import org.apache.axis2.AxisFault;
 import org.gofleet.openLS.OpenLS;
 import org.gofleet.openLS.util.Utils;
 import org.junit.BeforeClass;
@@ -15,7 +14,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.ExpectedException;
-import org.springframework.test.annotation.Repeat;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -25,48 +23,48 @@ public class SimpleServiceTests {
 
 	@Autowired
 	OpenLS openLS;
-	static OMElement determineRouteRequest = null;
-	static OMElement geocodingRequest = null;
-	static OMElement reverseGeocodingRequest = null;
-	static OMElement directoryRequest = null;
+	static JAXBElement<XLSType> determineRouteRequest = null;
+	static JAXBElement<XLSType> geocodingRequest = null;
+	static JAXBElement<XLSType> reverseGeocodingRequest = null;
+	static JAXBElement<XLSType> directoryRequest = null;
 
 	@BeforeClass
 	public static void initialize() throws FileNotFoundException, JAXBException {
-		determineRouteRequest = Utils.convertFile2OMElement(
+		determineRouteRequest = Utils.convertFile2XLSType(
 				"/determineRouteRequest.xml", XLSType.class);
-		geocodingRequest = Utils.convertFile2OMElement("/geocodingRequest.xml",
+		geocodingRequest = Utils.convertFile2XLSType("/geocodingRequest.xml",
 				XLSType.class);
-		reverseGeocodingRequest = Utils.convertFile2OMElement(
+		reverseGeocodingRequest = Utils.convertFile2XLSType(
 				"/reverseGeocoding.xml", XLSType.class);
-		directoryRequest = Utils.convertFile2OMElement("/directory.xml",
+		directoryRequest = Utils.convertFile2XLSType("/directory.xml",
 				XLSType.class);
 	}
 
 	@Test(timeout = 300000)
-//	@Repeat(value = 10)
-	public void testEmptyRoute() throws AxisFault, FileNotFoundException,
-			JAXBException {
+	// @Repeat(value = 10)
+	public void testEmptyRoute() throws FileNotFoundException, JAXBException {
 		openLS.openLS(determineRouteRequest);
 	}
 
-    @Test //(timeout = 5000)
-//	@Repeat(value = 8)
-	public void testEmptyGeocoding() throws AxisFault, FileNotFoundException,
+	@Test
+	// (timeout = 5000)
+	// @Repeat(value = 8)
+	public void testEmptyGeocoding() throws FileNotFoundException,
 			JAXBException {
 		openLS.openLS(geocodingRequest);
 	}
 
 	@Test(timeout = 1000)
-	@ExpectedException(value = AxisFault.class)
-	public void testEmptyDirectory() throws AxisFault, FileNotFoundException,
+	@ExpectedException(value = RuntimeException.class)
+	public void testEmptyDirectory() throws FileNotFoundException,
 			JAXBException {
 		openLS.openLS(directoryRequest);
 	}
 
 	@Test(timeout = 5000)
-//	@Repeat(value = 8)
-	public void testEmptyReverseGeocoding() throws AxisFault,
-			FileNotFoundException, JAXBException {
+	// @Repeat(value = 8)
+	public void testEmptyReverseGeocoding() throws FileNotFoundException,
+			JAXBException {
 		openLS.openLS(reverseGeocodingRequest);
 	}
 }

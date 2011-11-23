@@ -20,8 +20,6 @@ import net.opengis.xls.v_1_2_0.ResponseType;
 import net.opengis.xls.v_1_2_0.RouteGeometryType;
 import net.opengis.xls.v_1_2_0.XLSType;
 
-import org.apache.axiom.om.OMElement;
-import org.apache.axis2.AxisFault;
 import org.gofleet.openLS.OpenLS;
 import org.gofleet.openLS.util.Utils;
 import org.junit.Test;
@@ -39,21 +37,12 @@ public class RoutingServiceTests {
 	OpenLS openLS;
 
 	@Test
-	public void testSimpleRoute() throws AxisFault, FileNotFoundException,
-			JAXBException, XMLStreamException, FactoryConfigurationError,
-			SAXException {
-		OMElement resultado = openLS.openLS(Utils.convertFile2OMElement(
-				"/determineRouteRequest.xml", XLSType.class));
+	public void testSimpleRoute() throws FileNotFoundException, JAXBException,
+			XMLStreamException, FactoryConfigurationError, SAXException {
+		XLSType object = openLS.openLS(Utils.convertFile2XLSType(
+				"/determineRouteRequest.xml", XLSType.class)).getValue();
 
-		assertNotNull("Empty response", resultado);
-
-		assertEquals("This is no XLS object", resultado.getQName()
-				.getLocalPart(), "xlsType");
-		assertEquals("Wrong namespace", resultado.getQName().getNamespaceURI(),
-				"http://www.opengis.net/xls");
-
-		Object object = Utils.convertOMElement2Object(resultado, XLSType.class,
-				true);
+		assertNotNull("Empty response", object);
 
 		assertTrue("This is no XLS object", object instanceof XLSType);
 

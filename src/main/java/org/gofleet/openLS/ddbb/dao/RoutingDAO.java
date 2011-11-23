@@ -212,12 +212,18 @@ public class RoutingDAO {
 							if (!current.equals(last)) {
 								Geometry geometry = wktReader.read(step[2]);
 								LOG.trace(geometry);
-								for (Coordinate coord : geometry
-										.getCoordinates())
-									coordinates.add(coord);
-								Double tmp_cost = new Double(step[1]);
-								if (!(tmp_cost.isInfinite() || tmp_cost.isNaN())) {
-									cost += tmp_cost;
+								try {
+									for (Coordinate coord : geometry
+											.getCoordinates())
+										coordinates.add(coord);
+									Double tmp_cost = new Double(step[1]);
+									if (!(tmp_cost.isInfinite() || tmp_cost
+											.isNaN())) {
+										cost += tmp_cost;
+									}
+								} catch (Exception e) {
+									LOG.error("Unknown Geometry '" + geometry
+											+ "'", e);
 								}
 								LOG.trace("New cost " + cost);
 							} else

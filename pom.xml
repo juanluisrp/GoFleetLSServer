@@ -74,85 +74,10 @@
 					</webAppConfig>
 				</configuration>
 			</plugin>
-
-			<!-- Maven axis2M plugin -->
-			<plugin>
-				<groupId>org.axis2m</groupId>
-				<artifactId>axis2m-plugins</artifactId>
-				<version>1.0M2</version>
-
-				<!-- Uncomment with Jetty -->
-				<configuration>
-					<wsdlFile>http://localhost:8080/services/OpenLS?wsdl</wsdlFile>
-				</configuration>
-			</plugin>
-
-			<!-- Maven axis2 AAR plugin -->
-			<plugin>
-				<groupId>org.apache.axis2</groupId>
-				<artifactId>axis2-aar-maven-plugin</artifactId>
-				<version>1.4.1</version>
-				<configuration>
-					<servicesXmlFile>
-						src/main/webapp/WEB-INF/services/SimpleService/META-INF/services.xml</servicesXmlFile>
-				</configuration>
-				<!-- <executions> <execution> <phase>package</phase> <goals> <goal>aar</goal> 
-					</goals> </execution> </executions> -->
-			</plugin>
-
-			<!-- Converting XSD 2 Java -->
-			<!-- <plugin> <groupId>org.codehaus.mojo</groupId> <artifactId>xmlbeans-maven-plugin</artifactId> 
-				<version>2.3.3</version> <executions> <execution> <goals> <goal>xmlbeans</goal> 
-				</goals> </execution> </executions> <inherited>true</inherited> <configuration> 
-				<download>true</download> <debug>true</debug> <schemaDirectory>src/main/resources/ols/1.2.1/</schemaDirectory> 
-				<sourceGenerationDirectory>src/main/java/</sourceGenerationDirectory> </configuration> 
-				</plugin> -->
 		</plugins>
 	</build>
 
 	<dependencies>
-		<!-- Axis2 - webservice -->
-		<dependency>
-			<groupId>org.apache.axis2</groupId>
-			<artifactId>axis2</artifactId>
-			<version>${axis2ReleaseVersion}</version>
-		</dependency>
-		<!-- <dependency> <groupId>org.apache.axis2</groupId> <artifactId>axis2-spring</artifactId> 
-			<version>${axis2ReleaseVersion}</version> </dependency> -->
-		<dependency>
-			<groupId>org.apache.axis2</groupId>
-			<artifactId>axis2-transport-http</artifactId>
-			<version>${axis2ReleaseVersion}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.axis2</groupId>
-			<artifactId>axis2-transport-local</artifactId>
-			<version>${axis2ReleaseVersion}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.axis2</groupId>
-			<artifactId>axis2-spring</artifactId>
-			<version>${axis2ReleaseVersion}</version>
-			<exclusions>
-				<exclusion>
-					<artifactId>spring-core</artifactId>
-					<groupId>org.springframework</groupId>
-				</exclusion>
-				<exclusion>
-					<artifactId>spring-beans</artifactId>
-					<groupId>org.springframework</groupId>
-				</exclusion>
-				<exclusion>
-					<artifactId>spring-context</artifactId>
-					<groupId>org.springframework</groupId>
-				</exclusion>
-				<exclusion>
-					<artifactId>spring-web</artifactId>
-					<groupId>org.springframework</groupId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
 		<!-- unknown -->
 		<dependency>
 			<groupId>backport-util-concurrent</groupId>
@@ -217,11 +142,8 @@
 			<artifactId>hibernate-spatial-${gisProvider}</artifactId>
 			<version>${hibernateSpatial.version}</version>
 		</dependency>
-		<!-- <dependency>
-			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-entitymanager</artifactId>
-			<version>${hibernate.version}</version>
-		</dependency> -->
+		<!-- <dependency> <groupId>org.hibernate</groupId> <artifactId>hibernate-entitymanager</artifactId> 
+			<version>${hibernate.version}</version> </dependency> -->
 		<dependency>
 			<groupId>com.vividsolutions</groupId>
 			<artifactId>jts</artifactId>
@@ -237,12 +159,18 @@
 
 
 		<!-- spring -->
- 		<dependency>
+		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-orm</artifactId>
 			<version>${spring.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>spring-core</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
- 		<dependency>
+		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-web</artifactId>
 			<version>${spring.version}</version>
@@ -251,6 +179,12 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-tx</artifactId>
 			<version>${spring.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>spring-core</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -262,7 +196,7 @@
 			<artifactId>jsr250-api</artifactId>
 			<version>1.0</version>
 		</dependency>
- 
+
 		<!-- Others -->
 		<dependency>
 			<groupId>log4j</groupId>
@@ -279,7 +213,34 @@
 			<artifactId>cglib</artifactId>
 			<version>2.2.2</version>
 		</dependency>
-
+		<!-- These are the Jersey dependencies -->
+		<dependency>
+			<groupId>com.sun.jersey.contribs</groupId>
+			<artifactId>jersey-spring</artifactId>
+			<version>1.10</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>spring-core</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>spring-web</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>spring-aop</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>spring-beans</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>spring-context</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 	</dependencies>
 
 	<repositories>
@@ -301,17 +262,8 @@
 		</repository>
 	</repositories>
 
-	<pluginRepositories>
-		<pluginRepository>
-			<id>axis2m</id>
-			<name>Axis2m Repository</name>
-			<url>http://axis2m.sourceforge.net/repo/</url>
-		</pluginRepository>
-	</pluginRepositories>
-
 	<properties>
 		<!-- version -->
-		<axis2ReleaseVersion>1.6.1</axis2ReleaseVersion>
 		<spring.version>3.0.6.RELEASE</spring.version>
 		<jdbc.version>9.0-801.jdbc4</jdbc.version>
 		<hibernateSpatial.version>1.1</hibernateSpatial.version>

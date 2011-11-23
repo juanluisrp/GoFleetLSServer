@@ -4,6 +4,12 @@ import java.util.LinkedList;
 import java.util.List;
 
 import javax.annotation.Resource;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.stream.FactoryConfigurationError;
@@ -17,11 +23,6 @@ import net.opengis.xls.v_1_2_0.RequestType;
 import net.opengis.xls.v_1_2_0.ReverseGeocodeRequestType;
 import net.opengis.xls.v_1_2_0.XLSType;
 
-import org.apache.axiom.om.OMAbstractFactory;
-import org.apache.axiom.om.OMElement;
-import org.apache.axiom.om.OMFactory;
-import org.apache.axiom.om.OMNamespace;
-import org.apache.axis2.AxisFault;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.gofleet.openLS.ddbb.GeoCoding;
@@ -58,8 +59,9 @@ import org.xml.sax.SAXException;
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
-@Controller(value="openLSService")
+@Controller(value = "openLSService")
 @Scope("session")
+@Path("/")
 public class OpenLS {
 	static Log LOG = LogFactory.getLog(OpenLS.class);
 
@@ -92,20 +94,10 @@ public class OpenLS {
 	 * 
 	 * @return
 	 */
-	public OMElement test(OMElement alive) {
-		LOG.trace("test(" + alive + ")");
-
-		OMFactory fac = OMAbstractFactory.getOMFactory();
-		OMNamespace omNs = fac.createOMNamespace(
-				"http://www.w3.org/2006/01/wsdl/in-out", "example1");
-		OMElement method = fac.createOMElement("echo", omNs);
-		OMElement value = fac.createOMElement("Text", omNs);
-		value.addChild(fac.createOMText(value, "Server Alive"));
-		if (alive != null)
-			value.addChild(alive);
-		method.addChild(value);
-
-		return method;
+	@GET
+	@Produces(MediaType.TEXT_PLAIN)
+	public String test() {
+		return "Have you tried sending a XLS request by POST?";
 	}
 
 	/**
@@ -114,9 +106,13 @@ public class OpenLS {
 	 * 
 	 * @param parameter
 	 * @return
-	 * @throws AxisFault
 	 */
-	public OMElement openLS(OMElement parameter) throws AxisFault {
+	@POST
+	@Produces(MediaType.TEXT_XML)
+	@Consumes({ MediaType.APPLICATION_XML, MediaType.TEXT_XML,
+			MediaType.APPLICATION_ATOM_XML })
+	public JAXBElement<XLSType> openLS(JAXBElement<XLSType> jaxbelement) {
+		XLSType parameter = jaxbelement.getValue();
 		LOG.trace("openLS(" + parameter + ")");
 		String method = Utils.getMethod(parameter);
 
@@ -133,23 +129,23 @@ public class OpenLS {
 				resultado = directory(parameter);
 		} catch (JAXBException e) {
 			LOG.error(e, e);
-			throw AxisFault.makeFault(e);
+			throw new RuntimeException(e);
 		} catch (XMLStreamException e) {
 			LOG.error(e, e);
-			throw AxisFault.makeFault(e);
+			throw new RuntimeException(e);
 		} catch (FactoryConfigurationError e) {
 			LOG.error(e, e);
-			throw AxisFault.makeFault(e);
+			throw new RuntimeException(e);
 		} catch (SAXException e) {
 			LOG.error(e, e);
-			throw AxisFault.makeFault(e);
+			throw new RuntimeException(e);
 		} catch (Throwable e) {
 			LOG.error(e, e);
-			throw AxisFault.makeFault(e);
+			throw new RuntimeException(e);
 		}
 		if (resultado == null)
-			throw AxisFault
-					.makeFault(new Exception("Function not implemented"));
+			throw new RuntimeException(
+					new Exception("Function not implemented"));
 
 		return Utils.envelop(resultado);
 	}
@@ -165,11 +161,9 @@ public class OpenLS {
 	 * @throws XMLStreamException
 	 * @throws JAXBException
 	 */
-	protected List<AbstractResponseParametersType> routePlan(OMElement parameter)
-			throws AxisFault, JAXBException, XMLStreamException,
+	protected List<AbstractResponseParametersType> routePlan(XLSType xls)
+			throws JAXBException, XMLStreamException,
 			FactoryConfigurationError, SAXException {
-		XLSType xls = (XLSType) Utils.convertOMElement2Object(parameter,
-				XLSType.class);
 		@SuppressWarnings("unchecked")
 		RequestType body = ((JAXBElement<RequestType>) xls.getBody().get(0))
 				.getValue();
@@ -197,10 +191,8 @@ public class OpenLS {
 	 */
 	@SuppressWarnings("unchecked")
 	protected List<List<AbstractResponseParametersType>> reverseGeocoding(
-			OMElement parameter) throws AxisFault, JAXBException,
-			XMLStreamException, FactoryConfigurationError, SAXException {
-		XLSType xls = (XLSType) Utils.convertOMElement2Object(parameter,
-				XLSType.class);
+			XLSType xls) throws JAXBException, XMLStreamException,
+			FactoryConfigurationError, SAXException {
 		RequestType body = ((JAXBElement<RequestType>) xls.getBody().get(0))
 				.getValue();
 		ReverseGeocodeRequestType param = (ReverseGeocodeRequestType) body
@@ -219,11 +211,9 @@ public class OpenLS {
 	 * @throws XMLStreamException
 	 * @throws JAXBException
 	 */
-	protected List<List<AbstractResponseParametersType>> directory(
-			OMElement parameter) throws AxisFault, JAXBException,
-			XMLStreamException, FactoryConfigurationError, SAXException {
-		XLSType xls = (XLSType) Utils.convertOMElement2Object(parameter,
-				XLSType.class);
+	protected List<List<AbstractResponseParametersType>> directory(XLSType xls)
+			throws JAXBException, XMLStreamException,
+			FactoryConfigurationError, SAXException {
 		@SuppressWarnings("unchecked")
 		RequestType body = ((JAXBElement<RequestType>) xls.getBody().get(0))
 				.getValue();
@@ -243,11 +233,9 @@ public class OpenLS {
 	 * @throws XMLStreamException
 	 * @throws JAXBException
 	 */
-	protected List<List<AbstractResponseParametersType>> geocoding(
-			OMElement parameter) throws AxisFault, JAXBException,
-			XMLStreamException, FactoryConfigurationError, SAXException {
-		XLSType xls = (XLSType) Utils.convertOMElement2Object(parameter,
-				XLSType.class);
+	protected List<List<AbstractResponseParametersType>> geocoding(XLSType xls)
+			throws JAXBException, XMLStreamException,
+			FactoryConfigurationError, SAXException {
 		@SuppressWarnings("unchecked")
 		RequestType body = ((JAXBElement<RequestType>) xls.getBody().get(0))
 				.getValue();
