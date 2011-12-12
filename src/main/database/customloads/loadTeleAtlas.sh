@@ -297,4 +297,27 @@ do
 
 done
 
+echo "Generating general route table"
+
+$PSQL -c "SELECT INTO routing_$NOW
+        (SELECT * from routing_00_$NOW)
+	UNION 
+        (SELECT * from routing_01_$NOW)
+        UNION 
+        (SELECT * from routing_02_$NOW)
+        UNION 
+        (SELECT * from routing_03_$NOW)
+        UNION 
+        (SELECT * from routing_04_$NOW)
+        UNION 
+        (SELECT * from routing_05_$NOW)
+        UNION 
+        (SELECT * from routing_06_$NOW)
+        UNION 
+        (SELECT * from routing_07_$NOW)
+        UNION 
+        (SELECT * from routing_08_$NOW);"
+
+
+
 echo "Importation successfull."
