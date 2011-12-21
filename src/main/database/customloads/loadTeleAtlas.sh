@@ -13,8 +13,10 @@ echo "Now, to important stuff:"
 #Customize the following variables with your own environment:
 DATABASE="gofleet-madrid"
 USERNAME="gofleet"
-HOST="postgresql-apps"
+HOST="localhost"
 PORT="5432"
+
+min_id=57240000233635
 
 NOW=$(date +%s)
 
@@ -22,105 +24,33 @@ PSQL="psql -U $USERNAME -h $HOST -p $PORT $DATABASE "
 
 echo "Preparing helper views"
 
-$PSQL -c "create or replace view
-                network_00
-        as
-                select n.*
-                from
-                        t_network as n,
-                        t_streets_00 as s
-                where
-                        st_contains(s.the_geom, n.the_geom);"
-$PSQL -c "create or replace view
-                network_01
-        as
-                select n.*
-                from
-                        t_network as n,
-                        t_streets_01 as s
-                where
-                        st_contains(s.the_geom, n.the_geom);"
-$PSQL -c "create or replace view
-                network_02
-        as
-                select n.*
-                from
-                        t_network as n,
-                        t_streets_02 as s
-                where
-                        st_contains(s.the_geom, n.the_geom);"
-$PSQL -c "create or replace view
-                network_03
-        as
-                select n.*
-                from
-                        t_network as n,
-                        t_streets_03 as s
-                where
-                        st_contains(s.the_geom, n.the_geom);"
-$PSQL -c "create or replace view
-                network_04
-        as
-                select n.*
-                from
-                        t_network as n,
-                        t_streets_04 as s
-                where
-                        st_contains(s.the_geom, n.the_geom);"
-$PSQL -c "create or replace view
-                network_05
-        as
-                select n.*
-                from
-                        t_network as n,
-                        t_streets_05 as s
-                where
-                        st_contains(s.the_geom, n.the_geom);"
-$PSQL -c "create or replace view
-                network_06
-        as
-                select n.*
-                from
-                        t_network as n,
-                        t_streets_06 as s
-                where
-                        st_contains(s.the_geom, n.the_geom);"
-$PSQL -c "create or replace view
-                network_07
-        as
-                select n.*
-                from
-                        t_network as n,
-                        t_streets_07 as s
-                where
-                        st_contains(s.the_geom, n.the_geom);"
-$PSQL -c "create or replace view 
-		network_08
-	as
-		select n.*
-		from
-		 	t_network as n,
-		 	t_streets_08 as s
-		where 
-			st_contains(s.the_geom, n.the_geom);"
+for i in 0 1 2 3 4 5 6 7 8
+do
+    $PSQL -c "CREATE OR REPLACE VIEW network_""$i"" AS 
+                 SELECT n.* FROM t_network n, t_streets_0""$i"" s
+		 WHERE st_contains(s.the_geom, n.the_geom) 
+  		 OR st_intersects(s.the_geom, n.the_geom) AND NOT st_touches(s.the_geom, n.the_geom);"
+done
 
 echo "Processing separated types of roads"
 
 for i in 0 1 2 3 4 5 6 7 8
 do
 
-	$PSQL -c "DROP VIEW routing_restrictions_view_0$i;"
+	
+        $PSQL -c "DROP VIEW routing_norestrictions_view_0""$i"" CASCADE;"
+        $PSQL -c "DROP VIEW routing_restrictions_view_0""$i"" CASCADE;"
 
-	$PSQL -c "CREATE OR REPLACE VIEW routing_restrictions_view_0$i AS 
- 	SELECT 	
-		network.id, 
+	$PSQL -c "CREATE OR REPLACE VIEW routing_restrictions_view_0""$i"" AS 
+ 	SELECT 	""$i""as category,
+		network.id - ""$min_id"", 
 		network.gid, 
 		network.the_geom, 
 		network.x1, 
 		network.y1, 
 		network.x2, 
 		network.y2, 
-		target.id::text AS rule, 
+		(target.id - ""$min_id"")::text AS rule, 
 		network.f_jnctid_fk AS source, 
 		network.t_jnctid_fk AS target, 
 		'Infinity'::double precision AS to_cost, 
@@ -139,7 +69,7 @@ do
 		network.nametyp as nametyp,
 		network.rtetyp as rtetyp
    	FROM 	
-		network_0$i network, 
+		network_0""$i"" network, 
 		t_network target, 
 		t_junctions junction, 
 		t_maneuvers man, 
@@ -151,11 +81,9 @@ do
 		AND man_path.id = man.id 
 		AND junction.feattyp = 4120;"
 
-	$PSQL -c "DROP VIEW routing_norestrictions_view_0$i;"
-
 	$PSQL -c "CREATE OR REPLACE VIEW routing_norestrictions_view_0$i AS
-        SELECT
-                network.id,
+        SELECT  ""$i""as category,
+                network.id - ""$min_id"",
                 network.gid,
                 network.the_geom,
                 network.x1,
@@ -186,138 +114,45 @@ do
 		not (exists (select 1 from routing_restrictions_view_0$i restr
 				where restr.source = network.f_jnctid_fk and restr.target = network.t_jnctid_fk));"
 
-	$PSQL -c "CREATE TABLE routing_""0$i""_$NOW
-	(
-	  id serial,
-	  former_id numeric(15,0),
-	  gid integer,
-	  the_geom geometry,
-	  x1 double precision,
-	  y1 double precision,
-	  x2 double precision,
-	  y2 double precision,
-	  rule text,
-	  source integer,
-	  target integer,
-	  to_cost double precision,
-	  cost double precision,
-	  reverse_cost double precision,
-	  name text DEFAULT 'unknown'::text
-	);"
-
-	echo "Generate gist"
-	
-	$PSQL -c "CREATE INDEX routing_gist_idx_$NOW$i
-	  ON routing_""0$i""_$NOW
-	  USING gist
-	  (the_geom );"
-	
-	$PSQL -c "ALTER TABLE routing_""0$i""_$NOW CLUSTER ON routing_gist_idx_$NOW$i;"
-	
-	echo "Generate idx"
-
-	$PSQL -c "CREATE INDEX routing_id_idx_$NOW$i
-	  ON routing_""0$i""_$NOW
-	  USING btree
-	  (id );"
-	
-	echo "Generate name id"
-
-	$PSQL -c "CREATE INDEX routing_name_idx_$NOW$i
-	  ON routing_""0$i""_$NOW
-	  USING btree
-	  (name );"
-	
-	echo "Generate rule id"
-	
-	$PSQL -c "CREATE INDEX routing_rule_idx_$NOW$i
-	  ON routing_""0$i""_$NOW
-	  USING btree
-	  (rule );"
-	
-	echo "Generate source id"	
-
-	$PSQL -c "CREATE INDEX routing_source_idx_$NOW$i
-	  ON routing_""0$i""_$NOW
-	  USING btree
-	  (source );"
-
-	echo "Generate target id"
-	
-	$PSQL -c "CREATE INDEX routing_target_idx_$NOW$i
-	  ON routing_""0$i""_$NOW
-	  USING btree
-	  (target);"
-	
-	echo "Generating routing rows"
-	
-	echo "Generating restrictions rows"
-	
-	$PSQL -c "INSERT INTO routing_""0$i""_$NOW
-		(SELECT
-		  null,
-		  id,
-		  gid,
-		  the_geom,
-		  x1,
-		  y1,
-		  x2,
-		  y2,
-		  rule,
-		  source,
-		  target,
-		  to_cost,
-		  cost,
-		  reverse_cost,
-		  name 
-		from 
-			routing_restrictions_view_0$i);"
-		
-	echo "Generating no restriction rows"
-	
-	$PSQL -c "INSERT INTO routing_""0$i""_$NOW
-        (SELECT 
-	  null,
-	  id,
-          gid,
-          the_geom,
-          x1,
-          y1,
-          x2,
-          y2,
-          rule,
-          source,
-          target,
-          to_cost,
-          cost,
-          reverse_cost,
-          name             
-        from 
-                routing_norestrictions_view_0$i);"
+	$PSQL -c "CREATE OR REPLACE VIEW routing_""$i"" AS (SELECT * from routing_restrictions_view_0""$i"") union all (SELECT * from routing_norestrictions_view_0""$i"");"
 
 done
 
 echo "Generating general route table"
 
-$PSQL -c "SELECT INTO routing_$NOW
-        (SELECT * from routing_00_$NOW)
-	UNION 
-        (SELECT * from routing_01_$NOW)
-        UNION 
-        (SELECT * from routing_02_$NOW)
-        UNION 
-        (SELECT * from routing_03_$NOW)
-        UNION 
-        (SELECT * from routing_04_$NOW)
-        UNION 
-        (SELECT * from routing_05_$NOW)
-        UNION 
-        (SELECT * from routing_06_$NOW)
-        UNION 
-        (SELECT * from routing_07_$NOW)
-        UNION 
-        (SELECT * from routing_08_$NOW);"
+$PSQL -c "SELECT INTO routing_""$NOW""
+        (SELECT * from routing_0)
+	UNION ALL
+        (SELECT * from routing_1)
+        UNION ALL
+        (SELECT * from routing_2)
+        UNION ALL
+        (SELECT * from routing_3)
+        UNION ALL
+        (SELECT * from routing_4)
+        UNION ALL
+        (SELECT * from routing_5)
+        UNION ALL
+        (SELECT * from routing_6)
+        UNION ALL
+        (SELECT * from routing_7)
+        UNION ALL
+        (SELECT * from routing_8);"
 
+$PSQL -c "create or replace view routing as select * from routing_""$NOW"";"
 
+$PSQL -c "CREATE INDEX routing_gist_idx_""$NOW"" ON routing_""$NOW"" USING gist (the_geom );"
+
+$PSQL -c "ALTER TABLE routing_""$NOW"" CLUSTER ON routing_gist_idx_""$NOW"";"
+
+$PSQL -c "CREATE INDEX routing_name_idx_""$NOW"" ON routing_""$NOW"" USING btree (name );"
+
+$PSQL -c "CREATE INDEX routing_rule_idx_""$NOW"" ON routing_""$NOW"" USING btree (rule );"
+
+$PSQL -c "CREATE INDEX routing_source_idx_""$NOW"" ON routing_""$NOW"" USING btree (source );"
+
+$PSQL -c "CREATE INDEX routing_target_idx ON routing USING btree (target );"
+
+$PSQL -c "vacuum routing_""$NOW"";"
 
 echo "Importation successfull."
