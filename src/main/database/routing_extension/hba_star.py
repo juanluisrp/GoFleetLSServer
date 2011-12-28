@@ -79,7 +79,8 @@ def hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_verte
   for y in adj:
     y_id = y['target']
     #Maybe we have reached this vertex before, on a better way
-    if hba_stepcost(y) != float('inf') and y['category'] <= cat:
+    if not y['id'] in already_processed and hba_stepcost(y) != float('inf') and y['category'] <= cat:
+      already_processed.append(y['id'])
       atleastone = 1
       #Link is of current category or better
       cost = d[x] + hba_stepcost(y)
