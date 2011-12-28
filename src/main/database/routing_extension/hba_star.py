@@ -8,6 +8,7 @@ version = '0.1'
 import plpy
 import operator
 import heapq
+import collections
 
 heuristic_plan = -1
 adj_plan = -1
@@ -49,43 +50,65 @@ def hba_stepcost(row):
 
 #Candidates to be the next node
 #The function returns edges
-def hba_adj(source, p, tablename='routing', col_geom='geom', col_edge='id', col_cost='cost', col_source='source', col_target='target', col_revc='reverse_cost', col_cat='category', col_name='name', col_rule='rule'):
-  #TODO falta meter los rules
+def hba_adj(cat, source, p, tablename='routing', col_geom='geom', col_edge='id', col_cost='cost', col_source='source', col_target='target', col_revc='reverse_cost', col_cat='category', col_name='name', col_rule='rule'):
   if adj_plan == -1:
     global adj_plan
-#    adj_plan = plpy.prepare('(select distinct reverse(' + col_geom + ') as geom, ' + col_edge + ' as id, ' + col_revc + ' as cost, ' + col_source + ' as target, ' + col_cat + ' as category, ' + col_name + ' as name from ' + tablename + ' where ' + col_target + '  = $1 and ' + col_revc + ' <> \'Infinity\' and not ' + col_edge + ' in (select ' + col_rule + '::numeric from ' + tablename + ' r where r.' + col_edge + ' = $2 and ' + col_rule + ' <> \'\')) union all (select distinct ' + col_geom + ' as geom, ' + col_edge + ' as id, ' + col_cost + ' as cost, ' + col_target + ' as target, ' + col_cat + ' as category, ' + col_name + ' as name from ' + tablename + ' where ' + col_source + ' = $1 and ' + col_cost + ' <> \'Infinity\' and ' + col_edge + ' not in (select ' + col_rule + '::numeric from ' + tablename + ' r where r.' + col_edge + ' = $2 and ' + col_rule + ' <> \'\'))', ['integer', 'Numeric'])
-#  try:
-#    id = p[source][1]['id']
-#    plpy.info(id)
-#  except:
-#    id = None 
+    adj_plan = plpy.prepare('\n\
+    select * from ((select  \n\
+	' + col_geom + ' as geom, \n\
+	' + col_edge + ' as id, \n\
+	' + col_cost + ' as cost,\n\
+	' + col_target + ' as source, \n\
+	' + col_source + ' as target, \n\
+	' + col_cat + ' as category, \n\
+	' + col_name + ' as name from ' + tablename + '\n\
+	) union all (select  \n\
+	' + col_geom + ' as geom, \n\
+	' + col_edge + ' as id, \n\
+	' + col_cost + ' as cost, \n\
+	' + col_source + ' as source,\n\
+	' + col_target + ' as target, \n\
+	' + col_cat + ' as category, \n\
+	' + col_name + ' as name from ' + tablename + ' )\n\
+	) a \n\
+		where source = $1\n\
+		and cost <> \'Infinity\''
+             #Turn restrictions:
+		+ 'and ' + col_edge + ' not in (SELECT ' + col_rule + ' from ' + tablename + ' r where r.' + col_edge + ' = $2 and ' + col_rule + ' is not null)'
+       , ['Integer', 'Integer'])
+  try:
+    last_id = int(p[int(source)][1]['id'])
+  except:
+    last_id = -1
 
-#  return plpy.execute(adj_plan, [source, id])
-
-    adj_plan = plpy.prepare('(select distinct reverse(' + col_geom + ') as geom, ' + col_edge + ' as id, ' + col_revc + ' as cost, ' + col_source + ' as target, ' + col_cat + ' as category, ' + col_name + ' as name from ' + tablename + ' where ' + col_target + '  = $1 and ' + col_revc + ' <> \'Infinity\') union all (select distinct ' + col_geom + ' as geom, ' + col_edge + ' as id, ' + col_cost + ' as cost, ' + col_target + ' as target, ' + col_cat + ' as category, ' + col_name + ' as name from ' + tablename + ' where ' + col_source + ' = $1 and ' + col_cost + ' <> \'Infinity\')', ['integer'])
-  return plpy.execute(adj_plan, [source])
+  return plpy.execute(adj_plan, [source, last_id])
 
 
 def hba_bestNext(ol):
   cost_tmp = float('inf')
+  x = -1
   #x <- node with smallest f-value
   for k,v in ol.items():
     if cost_tmp > v:
       x = k
   return x
 
+
 def hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed=[]):
   for y in adj:
     y_id = y['target']
     #Maybe we have reached this vertex before, on a better way
-    if not y['id'] in already_processed and hba_stepcost(y) != float('inf') and y['category'] <= cat:
+    if not y['id'] in already_processed and y['category'] <= cat:
       already_processed.append(y['id'])
       #Link is of current category or better
       cost = d[x] + hba_stepcost(y)
-      if (not(y_id in ol) and not(y_id in cl)) or cost < d[y_id]:
+      if hba_check_if_better(y_id, ol, cl, cost, d):
         cat = hba_update_y(x, y, y_id, d, p, cat, cl, ol, cost, target, vertex_tablename, col_vertex_geom, col_edge)
- #  if len(already_processed) == 0 and cat <= 8:
- #   hba_process_y(adj, p, cat + 1, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed)
+  if len(already_processed) == 0 and cat <= 8:
+   hba_process_y(adj, p, cat + 1, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed)
+
+def hba_check_if_better(y_id, ol, cl, cost, d):
+  return (not(y_id in ol) and not(y_id in cl)) or cost < d[y_id]
 
 def hba_update_y(x, y, y_id, d, p, cat, cl, ol, cost, target, vertex_tablename, col_vertex_geom, col_edge):
   #Update y
@@ -116,7 +139,7 @@ def hba_astar(source, target, ol, cl, cl2, cat, d, p, tablename='routing', col_g
       return x
 
     #Next candidates
-    adj = hba_adj(x, p,tablename, col_geom, col_edge, col_cost, col_source, col_target, col_revc, col_cat, col_name, col_rule)
+    adj = hba_adj(cat, x, p,tablename, col_geom, col_edge, col_cost, col_source, col_target, col_revc, col_cat, col_name, col_rule)
 
     #Forever alone
     if adj is None:
@@ -153,13 +176,9 @@ def hba_star(source, target, tablename='routing', col_edge='id', col_cost='cost'
   ps = {}
   pt = {}
 
-  #Current category of nodes (source and target)
-  cats = float('inf')
-  catt = float('inf')
-
   #Current category of search (backward and forward)
-  catf = float('inf')
-  catb = float('inf')
+  catf = 10
+  catb = 10
 
   #Initial values
   olf[source] = d[source] + hba_heuristic(source, target, vertex_tablename, col_vertex_geom, col_edge)
