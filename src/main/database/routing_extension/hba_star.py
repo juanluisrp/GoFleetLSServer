@@ -75,28 +75,26 @@ def hba_bestNext(ol):
   return x
 
 def hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed=[]):
-  atleastone = 0
   for y in adj:
     y_id = y['target']
     #Maybe we have reached this vertex before, on a better way
     if not y['id'] in already_processed and hba_stepcost(y) != float('inf') and y['category'] <= cat:
       already_processed.append(y['id'])
-      atleastone = 1
       #Link is of current category or better
       cost = d[x] + hba_stepcost(y)
-      if((not(y_id in ol) and not(y_id in cl)) or cost < d[y_id]):
-        #Update y
-        d[y_id] = cost
-        p[y_id] = [x, y]
-        cat = min(cat, y['category'])
-        if (y_id in cl):
-          cl.remove(y_id)
-        ol[y_id] = cost + hba_heuristic(y_id, target, vertex_tablename, col_vertex_geom, col_edge)
-  if not atleastone:
-    if cat == float('inf'):
-      cat = 10
-    if cat >= 0:
-      hba_process_y(adj, p, cat - 1, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed)
+      if (not(y_id in ol) and not(y_id in cl)) or cost < d[y_id]:
+        cat = hba_update_y(x, y, y_id, d, p, cat, cl, ol, cost, target, vertex_tablename, col_vertex_geom, col_edge)
+ #  if len(already_processed) == 0 and cat <= 8:
+ #   hba_process_y(adj, p, cat + 1, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed)
+
+def hba_update_y(x, y, y_id, d, p, cat, cl, ol, cost, target, vertex_tablename, col_vertex_geom, col_edge):
+  #Update y
+  d[y_id] = cost
+  p[y_id] = [x, y]
+  if (y_id in cl):
+    cl.remove(y_id)
+  ol[y_id] = cost + hba_heuristic(y_id, target, vertex_tablename, col_vertex_geom, col_edge)
+  return min(cat, y['category'])
 
 #A* function, but just one step
 def hba_astar(source, target, ol, cl, cl2, cat, d, p, tablename='routing', col_geom='geom', col_edge='id', col_cost='cost', col_revc='reverse_cost', col_source='source', col_target='target', vertex_tablename='vertex', col_cat='category', col_vertex_geom='geom', col_name='name', col_rule='rule'):
