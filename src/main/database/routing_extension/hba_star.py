@@ -40,6 +40,8 @@ def hba_buildPath(ps, pt, m, source, target):
    res.append([int(pt[current][1]['id']), pt[current][1]['geom'], pt[current][1]['name'], pt[current][1]['cost']])
    current = int(pt[current][0])
 
+  plpy.info("Resultado: ", len(res))
+
   return res
 
 #The step cost is the cost of the edge
@@ -50,11 +52,11 @@ def hba_stepcost(row):
 
 #Candidates to be the next node
 #The function returns edges
-def hba_adj(cat, source, p, tablename='routing', col_geom='geom', col_edge='id', col_cost='cost', col_source='source', col_target='target', col_revc='reverse_cost', col_cat='category', col_name='name', col_rule='rule'):
+def hba_adj(cat, source, target, p, tablename='routing', col_geom='geom', col_edge='id', col_cost='cost', col_source='source', col_target='target', col_revc='reverse_cost', col_cat='category', col_name='name', col_rule='rule'):
   if adj_plan == -1:
     global adj_plan
     adj_plan = plpy.prepare('\n\
-    select * from ((select  \n\
+    select a.*, st_distance(a.geom, b.geom) * 10 * (a.category + 1) as heuristic from ((select  \n\
 	' + col_geom + ' as geom, \n\
 	' + col_edge + ' as id, \n\
 	' + col_cost + ' as cost,\n\
@@ -70,18 +72,18 @@ def hba_adj(cat, source, p, tablename='routing', col_geom='geom', col_edge='id',
 	' + col_target + ' as target, \n\
 	' + col_cat + ' as category, \n\
 	' + col_name + ' as name from ' + tablename + ' )\n\
-	) a \n\
+	) a, (select ' + col_geom + '  as geom from ' + tablename + ' where ' + col_source + ' = $3 or ' + col_target + ' = $3 limit 1) b \n\
 		where source = $1\n\
 		and cost <> \'Infinity\''
              #Turn restrictions:
 		+ 'and ' + col_edge + ' not in (SELECT ' + col_rule + ' from ' + tablename + ' r where r.' + col_edge + ' = $2 and ' + col_rule + ' is not null)'
-       , ['Integer', 'Integer'])
+       , ['Integer', 'Integer', 'Integer'])
   try:
     last_id = int(p[int(source)][1]['id'])
   except:
     last_id = -1
 
-  return plpy.execute(adj_plan, [source, last_id])
+  return plpy.execute(adj_plan, [source, last_id, target])
 
 
 def hba_bestNext(ol):
@@ -116,7 +118,7 @@ def hba_update_y(x, y, y_id, d, p, cat, cl, ol, cost, target, vertex_tablename, 
   p[y_id] = [x, y]
   if (y_id in cl):
     cl.remove(y_id)
-  ol[y_id] = cost + hba_heuristic(y_id, target, vertex_tablename, col_vertex_geom, col_edge)
+  ol[y_id] = cost + y['heuristic'] #hba_heuristic(y_id, target, vertex_tablename, col_vertex_geom, col_edge)
   return min(cat, y['category'])
 
 #A* function, but just one step
@@ -139,7 +141,7 @@ def hba_astar(source, target, ol, cl, cl2, cat, d, p, tablename='routing', col_g
       return x
 
     #Next candidates
-    adj = hba_adj(cat, x, p,tablename, col_geom, col_edge, col_cost, col_source, col_target, col_revc, col_cat, col_name, col_rule)
+    adj = hba_adj(cat, x, target, p,tablename, col_geom, col_edge, col_cost, col_source, col_target, col_revc, col_cat, col_name, col_rule)
 
     #Forever alone
     if adj is None:
@@ -207,6 +209,8 @@ def hba_star(source, target, tablename='routing', col_edge='id', col_cost='cost'
 
   if m == 0:
     plpy.error("No path found")
+
+  plpy.info("cl:", len(clf) + len(clb))
 
   #Now, get the result
   return hba_buildPath(ps, pt, m, source, target)
