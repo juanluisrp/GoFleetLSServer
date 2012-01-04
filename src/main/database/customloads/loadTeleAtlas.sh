@@ -27,14 +27,14 @@ echo "Preparing helper views"
 
 $PSQL -c "CREATE OR REPLACE VIEW routing_restrictions_view AS 
  SELECT network.frc AS category, 
-	network.id - $min_id::bigint::numeric AS id,
+	network.id - $min_id::bigint AS id,
 	network.gid, 
 	network.the_geom, 
 	network.x1, 
 	network.y1, 
 	network.x2, 
 	network.y2, 
-	(restrictions.target - $min_id::bigint::numeric::double precision)::text AS rule, 
+	(restrictions.target - $min_id::bigint) AS rule, 
 	network.f_jnctid_fk AS source, 
 	network.t_jnctid_fk AS target, 
 	'Infinity'::double precision AS to_cost, 
@@ -64,14 +64,14 @@ $PSQL -c "CREATE OR REPLACE VIEW routing_restrictions_view AS
 
 $PSQL -c "CREATE OR REPLACE VIEW routing_norestrictions_view AS 
  SELECT network.frc AS category, 
-	network.id - $min_id::bigint::numeric AS id, 
+	network.id - $min_id::bigint AS id, 
 	network.gid, 
 	network.the_geom, 
 	network.x1, 
 	network.y1, 
 	network.x2, 
 	network.y2, 
-	''::text AS rule, 
+	null::bigint AS rule, 
 	network.f_jnctid_fk AS source, 
 	network.t_jnctid_fk AS target, 
 	'Infinity'::double precision AS to_cost, 
@@ -108,7 +108,7 @@ $PSQL -c "CREATE INDEX routing_rule_idx_""$NOW"" ON routing_""$NOW"" USING btree
 
 $PSQL -c "CREATE INDEX routing_source_idx_""$NOW"" ON routing_""$NOW"" USING btree (source );"
 
-$PSQL -c "CREATE INDEX routing_target_idx ON routing USING btree (target );"
+$PSQL -c "CREATE INDEX routing_target_idx ON routing_""$NOW"" USING btree (target );"
 
 $PSQL -c "vacuum routing_""$NOW"";"
 
