@@ -110,10 +110,14 @@ $PSQL -c "CREATE INDEX routing_source_idx_""$NOW"" ON routing_""$NOW"" USING btr
 
 $PSQL -c "CREATE INDEX routing_target_idx ON routing_""$NOW"" USING btree (target );"
 
+$PSQL -c "CREATE INDEX routing_cost_idx ON routing_""$NOW"" USING btree (cost );"
+
+$PSQL -c "CREATE INDEX routing_reverse_cost_idx ON routing_""$NOW"" USING btree (reverse_cost );"
+
 $PSQL -c "vacuum routing_""$NOW"";"
 
 echo "Replacing old data with new data"
 
-$PSQL -c "CREATE OR REPLACE VIEW routing AS SELECT * FROM routing_view"
+$PSQL -c "CREATE OR REPLACE VIEW routing AS SELECT * FROM routing_"$NOW
 
 echo "Importation successfull."
