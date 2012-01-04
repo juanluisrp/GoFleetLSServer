@@ -11,12 +11,13 @@ echo "Now, to important stuff:"
 
 #Configuration:
 #Customize the following variables with your own environment:
-DATABASE="gofleet-madrid"
+DATABASE="gofleetls"
 USERNAME="gofleet"
 HOST="localhost"
 PORT="5432"
+#This is the mininmum id from the network table. Used because low ids have better performance
+min_id=57240000233635 
 
-min_id=57240000233635
 
 NOW=$(date +%s)
 
@@ -24,122 +25,78 @@ PSQL="psql -U $USERNAME -h $HOST -p $PORT $DATABASE "
 
 echo "Preparing helper views"
 
-for i in 0 1 2 3 4 5 6 7 8
-do
-    $PSQL -c "CREATE OR REPLACE VIEW network_""$i"" AS 
-                 SELECT n.* FROM t_network n, t_streets_0""$i"" s
-		 WHERE st_contains(s.the_geom, n.the_geom) 
-  		 OR st_intersects(s.the_geom, n.the_geom) AND NOT st_touches(s.the_geom, n.the_geom);"
-done
+$PSQL -c "CREATE OR REPLACE VIEW routing_restrictions_view AS 
+ SELECT network.frc AS category, 
+	network.id - $min_id::bigint AS id,
+	network.gid, 
+	network.the_geom, 
+	network.x1, 
+	network.y1, 
+	network.x2, 
+	network.y2, 
+	(restrictions.target - $min_id::bigint) AS rule, 
+	network.f_jnctid_fk AS source, 
+	network.t_jnctid_fk AS target, 
+	'Infinity'::double precision AS to_cost, 
+        CASE network.oneway
+            WHEN 'N'::text THEN 'Infinity'::double precision
+            WHEN 'TF'::text THEN 'Infinity'::double precision
+            ELSE network.minutes
+        END AS cost, 
+        CASE network.oneway
+            WHEN 'N'::text THEN 'Infinity'::double precision
+            WHEN 'FT'::text THEN 'Infinity'::double precision
+            ELSE network.minutes
+        END AS reverse_cost, 
+	network.name, 
+	network.namelc, 
+	network.nametyp, 
+	network.rtetyp
+   FROM t_network network, ( SELECT b.trpelid[1] AS source, b.trpelid[2] AS target
+           FROM ( SELECT array_agg(a.trpelid) AS trpelid
+                   FROM t_maneuvers m, ( SELECT pi.id, pi.trpelid
+                           FROM t_maneuvers_path_index pi
+                          ORDER BY pi.seqnr) a
+                  WHERE m.id = a.id AND m.feattyp = 2103 AND m.promantyp = 0
+                  GROUP BY a.id) b) restrictions
+  WHERE network.id::double precision = restrictions.source;"
 
-echo "Processing separated types of roads"
 
-for i in 0 1 2 3 4 5 6 7 8
-do
+$PSQL -c "CREATE OR REPLACE VIEW routing_norestrictions_view AS 
+ SELECT network.frc AS category, 
+	network.id - $min_id::bigint AS id, 
+	network.gid, 
+	network.the_geom, 
+	network.x1, 
+	network.y1, 
+	network.x2, 
+	network.y2, 
+	null::bigint AS rule, 
+	network.f_jnctid_fk AS source, 
+	network.t_jnctid_fk AS target, 
+	'Infinity'::double precision AS to_cost, 
+        CASE network.oneway
+            WHEN 'N'::text THEN 'Infinity'::double precision
+            WHEN 'TF'::text THEN 'Infinity'::double precision
+            ELSE network.minutes
+        END AS cost, 
+        CASE network.oneway
+            WHEN 'N'::text THEN 'Infinity'::double precision
+            WHEN 'FT'::text THEN 'Infinity'::double precision
+            ELSE network.minutes
+        END AS reverse_cost, 
+	network.name, 
+	network.namelc, 
+	network.nametyp, 
+	network.rtetyp
+   FROM t_network network
+  WHERE NOT (EXISTS ( SELECT 1
+           FROM routing_restrictions_view restr
+          WHERE restr.source = network.f_jnctid_fk AND restr.target = network.t_jnctid_fk));"
 
-	
-        $PSQL -c "DROP VIEW routing_norestrictions_view_0""$i"" CASCADE;"
-        $PSQL -c "DROP VIEW routing_restrictions_view_0""$i"" CASCADE;"
+$PSQL -c "CREATE OR REPLACE VIEW routing_view AS SELECT * FROM routing_norestrictions_view UNION ALL SELECT * FROM routing_restrictions_view;"
 
-	$PSQL -c "CREATE OR REPLACE VIEW routing_restrictions_view_0""$i"" AS 
- 	SELECT 	""$i""as category,
-		network.id - ""$min_id"", 
-		network.gid, 
-		network.the_geom, 
-		network.x1, 
-		network.y1, 
-		network.x2, 
-		network.y2, 
-		(target.id - ""$min_id"")::text AS rule, 
-		network.f_jnctid_fk AS source, 
-		network.t_jnctid_fk AS target, 
-		'Infinity'::double precision AS to_cost, 
-        	CASE network.oneway
-        	    WHEN 'N'::text THEN 'Infinity'::double precision
-        	    WHEN 'TF'::text THEN 'Infinity'::double precision
-        	    ELSE network.minutes
-        	END AS cost, 
-        	CASE network.oneway
-        	    WHEN 'N'::text THEN 'Infinity'::double precision
-        	    WHEN 'FT'::text THEN 'Infinity'::double precision
-        	    ELSE network.minutes
-        	END AS reverse_cost,
-		network.name as name,
-		network.namelc as namelc,
-		network.nametyp as nametyp,
-		network.rtetyp as rtetyp
-   	FROM 	
-		network_0""$i"" network, 
-		t_network target, 
-		t_junctions junction, 
-		t_maneuvers man, 
-		t_maneuvers_path_index man_path
-	WHERE 
-		network.f_jnctid_fk = junction.gid 
-		AND target.t_jnctid_fk = junction.gid 
-		AND man.jnctid = junction.id 
-		AND man_path.id = man.id 
-		AND junction.feattyp = 4120;"
-
-	$PSQL -c "CREATE OR REPLACE VIEW routing_norestrictions_view_0$i AS
-        SELECT  ""$i""as category,
-                network.id - ""$min_id"",
-                network.gid,
-                network.the_geom,
-                network.x1,
-                network.y1,
-                network.x2,
-                network.y2,
-                ''::text AS rule,
-                network.f_jnctid_fk AS source,
-                network.t_jnctid_fk AS target,
-                'Infinity'::double precision AS to_cost,
-                CASE network.oneway
-                    WHEN 'N'::text THEN 'Infinity'::double precision
-                    WHEN 'TF'::text THEN 'Infinity'::double precision
-                    ELSE network.minutes
-                END AS cost,
-                CASE network.oneway
-                    WHEN 'N'::text THEN 'Infinity'::double precision
-                    WHEN 'FT'::text THEN 'Infinity'::double precision
-                    ELSE network.minutes
-                END AS reverse_cost,
-                network.name as name,
-                network.namelc as namelc,
-                network.nametyp as nametyp,
-                network.rtetyp as rtetyp
-        FROM
-                network_0$i network
-        WHERE
-		not (exists (select 1 from routing_restrictions_view_0$i restr
-				where restr.source = network.f_jnctid_fk and restr.target = network.t_jnctid_fk));"
-
-	$PSQL -c "CREATE OR REPLACE VIEW routing_""$i"" AS (SELECT * from routing_restrictions_view_0""$i"") union all (SELECT * from routing_norestrictions_view_0""$i"");"
-
-done
-
-echo "Generating general route table"
-
-$PSQL -c "SELECT INTO routing_""$NOW""
-        (SELECT * from routing_0)
-	UNION ALL
-        (SELECT * from routing_1)
-        UNION ALL
-        (SELECT * from routing_2)
-        UNION ALL
-        (SELECT * from routing_3)
-        UNION ALL
-        (SELECT * from routing_4)
-        UNION ALL
-        (SELECT * from routing_5)
-        UNION ALL
-        (SELECT * from routing_6)
-        UNION ALL
-        (SELECT * from routing_7)
-        UNION ALL
-        (SELECT * from routing_8);"
-
-$PSQL -c "create or replace view routing as select * from routing_""$NOW"";"
+$PSQL -c "SELECT * INTO routing_""$NOW"" FROM routing_view;"
 
 $PSQL -c "CREATE INDEX routing_gist_idx_""$NOW"" ON routing_""$NOW"" USING gist (the_geom );"
 
@@ -151,8 +108,16 @@ $PSQL -c "CREATE INDEX routing_rule_idx_""$NOW"" ON routing_""$NOW"" USING btree
 
 $PSQL -c "CREATE INDEX routing_source_idx_""$NOW"" ON routing_""$NOW"" USING btree (source );"
 
-$PSQL -c "CREATE INDEX routing_target_idx ON routing USING btree (target );"
+$PSQL -c "CREATE INDEX routing_target_idx ON routing_""$NOW"" USING btree (target );"
+
+$PSQL -c "CREATE INDEX routing_cost_idx ON routing_""$NOW"" USING btree (cost );"
+
+$PSQL -c "CREATE INDEX routing_reverse_cost_idx ON routing_""$NOW"" USING btree (reverse_cost );"
 
 $PSQL -c "vacuum routing_""$NOW"";"
+
+echo "Replacing old data with new data"
+
+$PSQL -c "CREATE OR REPLACE VIEW routing AS SELECT * FROM routing_"$NOW
 
 echo "Importation successfull."
