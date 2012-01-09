@@ -1,7 +1,10 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 DROP TYPE IF EXISTS hba_res;
 CREATE TYPE hba_res AS (id bigint, geom geometry, name text, cost double precision);
 
+=======
+>>>>>>> 38c70da8c80cb21c0d0cca3b02cab8ac04cff647
 CREATE OR REPLACE FUNCTION hba(origin Geometry, goal Geometry)
   RETURNS SETOF hba_res AS
 $BODY$
@@ -28,6 +31,7 @@ $BODY$
   ROWS 200;
 
 
+<<<<<<< HEAD
 CREATE OR REPLACE FUNCTION hba(source integer, target integer)
 =======
 CREATE OR REPLACE FUNCTION hba(origin Geometry, goal Geometry)
@@ -57,3 +61,5 @@ $BODY$
   ROWS 200;
 
 
+=======
+>>>>>>> 38c70da8c80cb21c0d0cca3b02cab8ac04cff647

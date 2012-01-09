@@ -58,7 +58,9 @@ import net.opengis.xls.v_1_2_0.WayPointType;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.gofleet.configuration.Configuration;
 import org.gofleet.openLS.ddbb.GeoCoding;
+import org.gofleet.openLS.ddbb.bean.HBA;
 import org.gofleet.openLS.ddbb.bean.Routing;
 import org.gofleet.openLS.ddbb.order.StDistance;
 import org.gofleet.openLS.util.GeoUtil;
@@ -78,17 +80,19 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import com.vividsolutions.jts.io.WKTReader;
 
 @Repository
 public class RoutingDAO {
-	private static final String GID_ROUTING = "id";
+	private static final String GID_ROUTING = Configuration.get("ROUTING_ID",
+			"gid");
+	private static final String TABLE_ROUTING = Configuration.get(
+			"ROUTING_TABLE", "routing");
 
-	private static final String TABLE_ROUTING = "routing";
-
-	@SuppressWarnings("unused")
-	private static final String EPSG_4326 = "EPSG:4326";
+	private static final String EPSG_4326 = Configuration.get("ROUTING_EPSG",
+			"EPSG:4326");
 
 	private HibernateTemplate hibernateTemplate;
 
@@ -186,129 +190,160 @@ public class RoutingDAO {
 				return stopTable;
 			}
 
-			private DetermineRouteResponseType getRouteResponse(
-					ResultSet resultado) throws SQLException {
+		};
+		return hibernateTemplate.executeWithNativeSession(action);
+	}
 
-				DetermineRouteResponseType res = new DetermineRouteResponseType();
-				Integer last = -1;
-				if (resultado.next()) {
-					String[][] array = (String[][]) ((Jdbc4Array) resultado
-							.getArray(1)).getArray();
+	@SuppressWarnings("unchecked")
+	@Transactional(readOnly = true)
+	public List<HBA> getHBA(final Point origen, final Point goal) {
 
-					if (LOG.isTraceEnabled()) {
-						for (String[] step : array)
-							LOG.trace("Going to " + step[0] + " at cost "
-									+ step[1] + " using " + step[2]);
-					}
+		HibernateCallback<List<HBA>> action = new HibernateCallback<List<HBA>>() {
 
-					WKTReader wktReader = new WKTReader();
-					List<Coordinate> coordinates = new LinkedList<Coordinate>();
-					Double cost = 0d;
-
-					for (String[] step : array) {
-						try {
-							Integer current = new Integer(step[0]);
-							LOG.trace("Comparing " + current + " with " + last);
-							if (!current.equals(last)) {
-								Geometry geometry = wktReader.read(step[2]);
-								LOG.trace(geometry);
-								try {
-									for (Coordinate coord : geometry
-											.getCoordinates())
-										coordinates.add(coord);
-									Double tmp_cost = new Double(step[1]);
-									if (!(tmp_cost.isInfinite() || tmp_cost
-											.isNaN())) {
-										cost += tmp_cost;
-									}
-								} catch (Exception e) {
-									LOG.error("Unknown Geometry '" + geometry
-											+ "'", e);
-								}
-								LOG.trace("New cost " + cost);
-							} else
-								LOG.trace("Repeating step " + current);
-							last = current;
-						} catch (Exception e) {
-							LOG.error("Unknown Geometry", e);
-						}
-					}
-
-					RouteGeometryType routeGeometry;
-					try {
-						routeGeometry = getRouteGeometry(coordinates);
-						res.setRouteGeometry(routeGeometry);
-					} catch (JAXBException e) {
-						LOG.error(e, e);
-					}
-
-					res.setRouteHandle(getRouteHandle(coordinates));
-					res.setRouteInstructionsList(getInstructionsList(coordinates));
-					res.setRouteMap(getRouteMap(coordinates));
-					res.setRouteSummary(getRouteSummary(cost));
+			public List<HBA> doInHibernate(Session session)
+					throws HibernateException, SQLException {
+				String sqlQuery = "";
+				try {
+					sqlQuery = "select * from hba(st_setsrid(st_geomFromText(?), "
+							+ EPSG_4326
+							+ "), st_setsrid(st_geomFromText(?), "
+							+ EPSG_4326 + "))";
+					final List<HBA> list = session.createSQLQuery(sqlQuery)
+							.addEntity(HBA.class)
+							.setParameter(0, origen.toText())
+							.setParameter(1, goal.toText()).setReadOnly(true)
+							.list();
+					return list;
+			
+				} catch (Throwable e) {
+					LOG.error("Error calculating route ('" + sqlQuery + "'): ["
+							+ e + "]");
+					return null;
 				}
-				return res;
-			}
-
-			private RouteSummaryType getRouteSummary(Double cost) {
-				RouteSummaryType res = new RouteSummaryType();
-				DistanceType coste = new DistanceType();
-				if (cost.isInfinite() || cost.isNaN())
-					coste.setValue(BigDecimal.valueOf(0d));
-				else
-					coste.setValue(BigDecimal.valueOf(cost));
-				res.setTotalDistance(coste);
-				return res;
-			}
-
-			private List<RouteMapType> getRouteMap(List<Coordinate> lineStrings) {
-				List<RouteMapType> res = new ArrayList<RouteMapType>(0);
-				return res;
-			}
-
-			private RouteInstructionsListType getInstructionsList(
-					List<Coordinate> lineStrings) {
-				RouteInstructionsListType res = new RouteInstructionsListType();
-				return res;
-			}
-
-			private RouteHandleType getRouteHandle(List<Coordinate> lineStrings) {
-				RouteHandleType handleType = new RouteHandleType();
-				handleType.setRouteID("-1");
-				handleType.setServiceID("-1");
-				return handleType;
-			}
-
-			private RouteGeometryType getRouteGeometry(
-					List<Coordinate> lineStrings) throws JAXBException {
-				LineString line = (new GeometryFactory(new PrecisionModel(),
-						4326)).createLineString(lineStrings
-						.toArray(new Coordinate[] {}));
-
-				JAXBContext context = JAXBContext
-						.newInstance("org.jvnet.ogc.gml.v_3_1_1.jts");
-
-				if (LOG.isTraceEnabled())
-					context.createMarshaller().marshal(line, System.out);
-
-				StringWriter writer = new StringWriter();
-				context.createMarshaller().marshal(line, writer);
-
-				Unmarshaller unmarshaller = JAXBContext.newInstance(
-						LineStringType.class).createUnmarshaller();
-				StringReader reader = new StringReader(writer.toString());
-
-				@SuppressWarnings("unchecked")
-				JAXBElement<LineStringType> lineElement = (JAXBElement<LineStringType>) unmarshaller
-						.unmarshal(reader);
-
-				LineStringType lineString = lineElement.getValue();
-
-				RouteGeometryType routeGeometry = new RouteGeometryType();
-				routeGeometry.setLineString(lineString);
-				return routeGeometry;
 			}
 		};
 		return hibernateTemplate.executeWithNativeSession(action);
 	}
+
+	private RouteGeometryType getRouteGeometry(List<Coordinate> lineStrings)
+			throws JAXBException {
+		LineString line = (new GeometryFactory(new PrecisionModel(), 4326))
+				.createLineString(lineStrings.toArray(new Coordinate[] {}));
+
+		JAXBContext context = JAXBContext
+				.newInstance("org.jvnet.ogc.gml.v_3_1_1.jts");
+
+		if (LOG.isTraceEnabled())
+			context.createMarshaller().marshal(line, System.out);
+
+		StringWriter writer = new StringWriter();
+		context.createMarshaller().marshal(line, writer);
+
+		Unmarshaller unmarshaller = JAXBContext.newInstance(
+				LineStringType.class).createUnmarshaller();
+		StringReader reader = new StringReader(writer.toString());
+
+		@SuppressWarnings("unchecked")
+		JAXBElement<LineStringType> lineElement = (JAXBElement<LineStringType>) unmarshaller
+				.unmarshal(reader);
+
+		LineStringType lineString = lineElement.getValue();
+
+		RouteGeometryType routeGeometry = new RouteGeometryType();
+		routeGeometry.setLineString(lineString);
+		return routeGeometry;
+	}
+
+	private RouteSummaryType getRouteSummary(Double cost) {
+		RouteSummaryType res = new RouteSummaryType();
+		DistanceType coste = new DistanceType();
+		if (cost.isInfinite() || cost.isNaN())
+			coste.setValue(BigDecimal.valueOf(0d));
+		else
+			coste.setValue(BigDecimal.valueOf(cost));
+		res.setTotalDistance(coste);
+		return res;
+	}
+
+	private List<RouteMapType> getRouteMap(List<Coordinate> lineStrings) {
+		List<RouteMapType> res = new ArrayList<RouteMapType>(0);
+		return res;
+	}
+
+	private RouteInstructionsListType getInstructionsList(
+			List<Coordinate> lineStrings) {
+		RouteInstructionsListType res = new RouteInstructionsListType();
+		return res;
+	}
+
+	private RouteHandleType getRouteHandle(List<Coordinate> lineStrings) {
+		RouteHandleType handleType = new RouteHandleType();
+		handleType.setRouteID("-1");
+		handleType.setServiceID("-1");
+		return handleType;
+	}
+	private DetermineRouteResponseType getRouteResponse(
+			ResultSet resultado) throws SQLException {
+
+		DetermineRouteResponseType res = new DetermineRouteResponseType();
+		Integer last = -1;
+		if (resultado.next()) {
+			String[][] array = (String[][]) ((Jdbc4Array) resultado
+					.getArray(1)).getArray();
+
+			if (LOG.isTraceEnabled()) {
+				for (String[] step : array)
+					LOG.trace("Going to " + step[0] + " at cost "
+							+ step[1] + " using " + step[2]);
+			}
+
+			WKTReader wktReader = new WKTReader();
+			List<Coordinate> coordinates = new LinkedList<Coordinate>();
+			Double cost = 0d;
+
+			for (String[] step : array) {
+				try {
+					Integer current = new Integer(step[0]);
+					LOG.trace("Comparing " + current + " with " + last);
+					if (!current.equals(last)) {
+						Geometry geometry = wktReader.read(step[2]);
+						LOG.trace(geometry);
+						try {
+							for (Coordinate coord : geometry
+									.getCoordinates())
+								coordinates.add(coord);
+							Double tmp_cost = new Double(step[1]);
+							if (!(tmp_cost.isInfinite() || tmp_cost
+									.isNaN())) {
+								cost += tmp_cost;
+							}
+						} catch (Exception e) {
+							LOG.error("Unknown Geometry '" + geometry
+									+ "'", e);
+						}
+						LOG.trace("New cost " + cost);
+					} else
+						LOG.trace("Repeating step " + current);
+					last = current;
+				} catch (Exception e) {
+					LOG.error("Unknown Geometry", e);
+				}
+			}
+
+			RouteGeometryType routeGeometry;
+			try {
+				routeGeometry = getRouteGeometry(coordinates);
+				res.setRouteGeometry(routeGeometry);
+			} catch (JAXBException e) {
+				LOG.error(e, e);
+			}
+
+			res.setRouteHandle(getRouteHandle(coordinates));
+			res.setRouteInstructionsList(getInstructionsList(coordinates));
+			res.setRouteMap(getRouteMap(coordinates));
+			res.setRouteSummary(getRouteSummary(cost));
+		}
+		return res;
+	}
+
 }
