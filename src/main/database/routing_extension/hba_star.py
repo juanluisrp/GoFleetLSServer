@@ -6,12 +6,10 @@ version = '0.1'
 #In fact we don't need this
 #But in case you try to execute this module outside postgres, you will know why you can't do it
 import plpy
-import operator
-import heapq
-import collections
 
 heuristic_plan = -1
 adj_plan = -1
+heuristic_constant=10
 
 #The heuristic used by A* is the euclidean length
 def hba_heuristic(source, target, tablename='vertex', col_geom='geom', col_id='id'):
@@ -48,7 +46,7 @@ def hba_buildPath(ps, pt, m, source, target):
 def hba_stepcost(row):
   if row is None:
     return float('inf')  
-  return row['cost']
+  return row['length']
 
 #Candidates to be the next node
 #The function returns edges
@@ -56,10 +54,11 @@ def hba_adj(cat, source, target, p, tablename='routing', col_geom='geom', col_ed
   if adj_plan == -1:
     global adj_plan
     adj_plan = plpy.prepare('\n\
-    select a.*, st_distance(a.geom, b.geom) * 10 * (a.category + 1) as heuristic from ((select  \n\
+    select a.*, (a.length + st_distance_sphere(st_startpoint(a.geom), b.geom)) * ' + str(heuristic_constant) + ' * (a.category + 1) as heuristic from ((select  \n\
 	' + col_geom + ' as geom, \n\
 	' + col_edge + ' as id, \n\
-	' + col_cost + ' as cost,\n\
+	' + col_revc + ' as cost,\n\
+        st_distance_sphere(st_startpoint(' + col_geom + '), st_endpoint(' + col_geom + ')) as length,\n\
 	' + col_target + ' as source, \n\
 	' + col_source + ' as target, \n\
 	' + col_cat + ' as category, \n\
@@ -68,46 +67,56 @@ def hba_adj(cat, source, target, p, tablename='routing', col_geom='geom', col_ed
 	' + col_geom + ' as geom, \n\
 	' + col_edge + ' as id, \n\
 	' + col_cost + ' as cost, \n\
+        st_distance_sphere(st_startpoint(' + col_geom + '), st_endpoint(' + col_geom + ')) as length,\n\
 	' + col_source + ' as source,\n\
 	' + col_target + ' as target, \n\
 	' + col_cat + ' as category, \n\
 	' + col_name + ' as name from ' + tablename + ' )\n\
-	) a, (select ' + col_geom + '  as geom from ' + tablename + ' where ' + col_source + ' = $3 or ' + col_target + ' = $3 limit 1) b \n\
+	) a, (select st_startpoint(' + col_geom + ')  as geom from ' + tablename + ' where ' + col_source + ' = $3 or ' + col_target + ' = $3 limit 1) b \n\
 		where source = $1\n\
 		and cost <> \'Infinity\''
              #Turn restrictions:
-		+ 'and ' + col_edge + ' not in (SELECT ' + col_rule + ' from ' + tablename + ' r where r.' + col_edge + ' = $2 and ' + col_rule + ' is not null)'
+	+ 'and ' + col_edge + ' not in (SELECT ' + col_rule + ' from ' + tablename + ' r where r.' + col_edge + ' = $2 and ' + col_rule + ' is not null)'
        , ['Integer', 'Integer', 'Integer'])
   try:
     last_id = int(p[int(source)][1]['id'])
   except:
     last_id = -1
-
+ 
+#  plpy.info([source, last_id, target])
+  
   return plpy.execute(adj_plan, [source, last_id, target])
 
 
 def hba_bestNext(ol):
   cost_tmp = float('inf')
   x = -1
-  #x <- node with smallest f-value
+#  x <- node with smallest f-value
   for k,v in ol.items():
     if cost_tmp > v:
       x = k
   return x
 
-
 def hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed=[]):
-  for y in adj:
-    y_id = y['target']
-    #Maybe we have reached this vertex before, on a better way
-    if not y['id'] in already_processed and y['category'] <= cat:
-      already_processed.append(y['id'])
-      #Link is of current category or better
-      cost = d[x] + hba_stepcost(y)
-      if hba_check_if_better(y_id, ol, cl, cost, d):
-        cat = hba_update_y(x, y, y_id, d, p, cat, cl, ol, cost, target, vertex_tablename, col_vertex_geom, col_edge)
+  cat_array = [cat]
+  categories = [hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed) for y in adj]
+  cat = cat_array[0]
   if len(already_processed) == 0 and cat <= 8:
    hba_process_y(adj, p, cat + 1, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed)
+
+def hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed):
+  cat = cat_array[0]
+  #Maybe we have reached this vertex before, on a better way
+  if hba_check_if_already_reached(y, already_processed, cat):
+    already_processed.append(y['id'])
+    #Link is of current category or better
+    cost = d[x] + hba_stepcost(y)
+    y_id = y['target']
+    if hba_check_if_better(y_id, ol, cl, cost, d):
+      cat_array[0] = hba_update_y(x, y, y_id, d, p, cat, cl, ol, cost, target, vertex_tablename, col_vertex_geom, col_edge)
+
+def hba_check_if_already_reached(y, already_processed, cat):
+  return y['category'] <= cat and not y['id'] in already_processed
 
 def hba_check_if_better(y_id, ol, cl, cost, d):
   return (not(y_id in ol) and not(y_id in cl)) or cost < d[y_id]
@@ -207,10 +216,16 @@ def hba_star(source, target, tablename='routing', col_edge='id', col_cost='cost'
   if m <= 0 :
     m = m2
 
-  if m == 0:
-    plpy.error("No path found")
+  plpy.info("ol:", len(olf), len(olb))
 
   plpy.info("cl:", len(clf) + len(clb))
+
+  plpy.info(clf)
+
+  plpy.info(clb)
+
+  if m == 0:
+    plpy.error("No path found")
 
   #Now, get the result
   return hba_buildPath(ps, pt, m, source, target)
