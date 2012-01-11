@@ -1,60 +1,82 @@
-﻿
-CREATE OR REPLACE FUNCTION gls_tsp_faster(routingtable text, stoptable integer[], gid text, source integer)
-  RETURNS text[] AS
-$$
-DECLARE
-	target INTEGER;
-	done INTEGER;
-	max INTEGER;
-	source_ INTEGER;
-	r RECORD;
-	g RECORD;
-	i INTEGER;
-	routingRes INTEGER[]:='{}';
-	res CHARACTER VARYING[][]:='{}';
-	geometry CHARACTER VARYING;
-        BEGIN
-		RAISE INFO 'gls_tsp(%, %, %, %)', routingTable, stopTable, gid, source; 
-		source_ := source;	
-		WHILE NOT(stopTable <@ routingRes) LOOP
-			RAISE INFO 'Looping on %, %', stopTable, routingRes;
-			-- we put in target the next nearest element --
-			SELECT t.id INTO target FROM routing s, routing t 
-				WHERE  s.id = source 
-				AND t.id = ANY (stopTable)
-				AND NOT (t.id = ANY (routingres))
-				and s.id <> t.id
-				order by st_distance(t.geometry, s.geometry) asc
-				limit 1;
+﻿CREATE OR REPLACE FUNCTION hba_(source integer, target integer)
+  RETURNS SETOF hba_res AS
+$BODY$
+  plpy.info("hba_star(", source, target, ")")
+  import sys
+  sys.path.insert(1, '/usr/share/gofleetls/')
+  import hba_star
+  res = hba_star.hba_star_pl(source,target)
 
-			RAISE INFO 'SELECT rout.* FROM routing rout, 
-							(select st_envelope(st_collect(geometry)) 
-								as geometry from routing 
-								where id = % or id = %) e
-							WHERE rout.geometry && e.geometry', source_, target;
-			FOR r in SELECT e.edge_id as edge, st_asText(routing.geometry) as geo,  e.cost as cost
-				from shortest_path_shooting_star(
-						'SELECT rout.* FROM routing rout, 
-							(select st_envelope(st_collect(geometry)) 
-								as geometry from routing 
-								where id = ' || source_ || 
-								' or id = ' || target || 
-								') e
-							WHERE rout.geometry && e.geometry', 
-						source_, target, true, true) e, 
-						routing
-						WHERE e.edge_id = routing.id LOOP
-				-- We update routingRes --
-				RAISE INFO 'Going through %', r;
-				routingRes := routingRes || r.edge;
-				RAISE INFO 'RoutingRes %', routingRes;
-				-- We put in res the edge, cost and geometry of the path --
-				res := res || ARRAY[ARRAY[r.edge, r.cost, r.geo]]::VARCHAR[];
-			END LOOP;
-			SELECT target INTO source_;
-		END LOOP;
-		RETURN res;
-        END;
-$$
+  for r in res:
+    yield(str(r[0]), str(r[1]), str(r[2]), str(r[3]))
+  
+$BODY$
+  LANGUAGE plpythonu VOLATILE
+  COST 2000
+  ROWS 200;
+
+CREATE OR REPLACE FUNCTION hba(source integer, target integer)
+  RETURNS SETOF hba_res AS
+$BODY$
+DECLARE
+  rec RECORD;
+  res hba_res%rowtype;
+BEGIN
+  RETURN query select * from hba_(source,target);
+END;
+$BODY$
   LANGUAGE plpgsql IMMUTABLE
-  COST 10000;
+  COST 2000
+  ROWS 200;
+
+CREATE OR REPLACE FUNCTION hba(origin geometry, goal geometry)
+  RETURNS SETOF hba_res AS
+$BODY$
+DECLARE
+  rec RECORD;
+  res hba_res%rowtype;
+  s integer;
+  t integer;
+BEGIN
+  select source into s from routing where cost <> 'Infinity' or reverse_cost <> 'Infinity' order by st_distance(the_geom, origin) asc limit 1;
+  select target into t from routing where cost <> 'Infinity' or reverse_cost <> 'Infinity' order by st_distance(the_geom, goal) asc limit 1;
+  RETURN QUERY select * from hba(source, target);
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 2000
+  ROWS 200;
+
+
+CREATE OR REPLACE FUNCTION gls_tsp(routingtable text, stoptable_g geometry[], gid text, source_g geometry)
+  RETURNS SETOF hba_res AS
+$BODY$
+DECLARE
+        source_ INTEGER;
+        t INTEGER := 1;
+        i INTEGER := 1;
+        stoptable INTEGER[]:='{}';
+        r INTEGER;
+        BEGIN
+		select source into source_ from routing 
+			where cost <> 'Infinity' 
+			or reverse_cost <> 'Infinity' 
+			order by st_distance(the_geom, source_g) asc limit 1;
+
+		-- For each "i" between lower limit and upper limit of array: --
+		FOR i IN array_lower(stoptable_g,1) .. array_upper(stoptable_g,1) LOOP
+			select target into t from routing 
+				where cost <> 'Infinity' 
+				or reverse_cost <> 'Infinity' 
+				order by st_distance(the_geom, stoptable_g[i]) asc limit 1;
+			stopTable := stopTable || t;
+		END LOOP;
+
+		RAISE INFO 'select * from gls_tsp(%, %, %, %)', routingTable, stopTable, gid, source_;
+		
+                RETURN QUERY select * from gls_tsp(routingTable, stopTable, gid, source_);
+        END;
+$BODY$
+  LANGUAGE plpgsql IMMUTABLE
+  COST 2000
+  ROWS 200;
