@@ -20,25 +20,38 @@ def hba_heuristic(source, target, tablename='vertex', col_geom='geom', col_id='i
 
 #Final procedure
 #Once we have the two partial paths, we build the definitive path
-def hba_buildPath(ps, pt, m, source, target):
+def hba_buildPath(ps, pt, m, source, target, olf, olb):
   #Return variable
   res = []
 
   current = m
 
-  while current != source:
-   res.append([int(ps[current][1]['id']), ps[current][1]['geom'], ps[current][1]['name'], ps[current][1]['cost']])
-   current = int(ps[current][0])
+  if m ==  0:
+    m = hba_bestNext(olf)
+  if m == -1:
+    m = hba_bestNext(olb)
+
+  plpy.info(m)
+
+  try:
+    while current != source:
+     res.append([int(ps[current][1]['id']), ps[current][1]['geom'], ps[current][1]['name'], ps[current][1]['cost']])
+     current = int(ps[current][0])
+  except:
+    pass
 
   res.reverse()
 
   current=m
 
-  while current != target:
-   res.append([int(pt[current][1]['id']), pt[current][1]['geom'], pt[current][1]['name'], pt[current][1]['cost']])
-   current = int(pt[current][0])
+  try:
+    while current != target:
+     res.append([int(pt[current][1]['id']), pt[current][1]['geom'], pt[current][1]['name'], pt[current][1]['cost']])
+     current = int(pt[current][0])
+  except:
+    pass
 
-  plpy.info("Resultado: ", len(res))
+  plpy.info("Path: ", len(res)) #, res)
 
   return res
 
@@ -54,7 +67,7 @@ def hba_adj(cat, source, target, p, tablename='routing', col_geom='geom', col_ed
   if adj_plan == -1:
     global adj_plan
     adj_plan = plpy.prepare('\n\
-    select a.*, (a.length + st_distance_sphere(st_startpoint(a.geom), b.geom)) * ' + str(heuristic_constant) + ' * (a.category + 1) as heuristic from ((select  \n\
+    select a.*, st_distance_sphere(st_startpoint(a.geom), b.geom) + a.length * ' + str(heuristic_constant) + ' * (a.category + 1) as heuristic from ((select  \n\
 	' + col_geom + ' as geom, \n\
 	' + col_edge + ' as id, \n\
 	' + col_revc + ' as cost,\n\
@@ -101,8 +114,8 @@ def hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_verte
   cat_array = [cat]
   categories = [hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed) for y in adj]
   cat = cat_array[0]
-  if len(already_processed) == 0 and cat <= 8:
-   hba_process_y(adj, p, cat + 1, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed)
+#  if len(already_processed) == 0 and cat <= 8:
+#   hba_process_y(adj, p, cat + 1, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed)
 
 def hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed):
   cat = cat_array[0]
@@ -196,39 +209,30 @@ def hba_star(source, target, tablename='routing', col_edge='id', col_cost='cost'
   olb[target] = d[target] + hba_heuristic(target, source, vertex_tablename, col_vertex_geom, col_edge)
 
   #Star two-sided A* search
-  frontsearch = 1
-  backsearch = 1
 
   m = -1
-  m1 = -1
-  m2 = -1
+  m1 = 0
+  m2 = 0
 
   #We try A* step by step until the two paths collided
-  while (frontsearch and backsearch):
-    if (catf >= catb and frontsearch):
-      m1 = hba_astar(source, target, olf, clf, clb, catf, d, ps, tablename, col_geom, col_edge, col_cost, col_revc, col_source, col_target, vertex_tablename, col_cat, col_vertex_geom, col_name, col_rule)
-      frontsearch = not m1 and len(olf) > 0
-    if (catb >= catf and backsearch):
-      m2 = hba_astar(target, source, olb, clb, clf, catb, d, pt, tablename, col_geom, col_edge, col_revc, col_cost, col_source, col_target, vertex_tablename, col_cat, col_vertex_geom, col_name, col_rule)
-      backsearch = not m2 and len(olb) > 0
+  while not m1 and not m2 and (len(olf) > 0 and len(olb) > 0):
+    m1 = hba_astar(source, target, olf, clf, clb, catf, d, ps, tablename, col_geom, col_edge, col_cost, col_revc, col_source, col_target, vertex_tablename, col_cat, col_vertex_geom, col_name, col_rule)
+    m2 = hba_astar(target, source, olb, clb, clf, catb, d, pt, tablename, col_geom, col_edge, col_revc, col_cost, col_source, col_target, vertex_tablename, col_cat, col_vertex_geom, col_name, col_rule)
 
   m = m1
   if m <= 0 :
     m = m2
 
-  plpy.info("ol:", len(olf), len(olb))
-
   plpy.info("cl:", len(clf) + len(clb))
 
-  plpy.info(clf)
-
-  plpy.info(clb)
+#  plpy.info(clf)
+#  plpy.info(clb)
 
   if m == 0:
-    plpy.error("No path found")
+    plpy.info("No path found. Inferring path")
 
   #Now, get the result
-  return hba_buildPath(ps, pt, m, source, target)
+  return hba_buildPath(ps, pt, m, source, target, olf, olb)
 
 
 # End of hba_star.py
