@@ -1,31 +1,43 @@
 package org.gofleet.configuration;
 
+import org.apache.commons.configuration.AbstractConfiguration;
+import org.apache.commons.configuration.DatabaseConfiguration;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class Configuration {
 
-	private static Object configuration = null;
+	private static AbstractConfiguration configuration = null;
 	private static org.apache.commons.logging.Log log = LogFactory
 			.getLog(Configuration.class);
 
-	// @Autowired
-	// private static DataSource datasource;
+	@Autowired
+	private static org.apache.commons.dbcp.BasicDataSource datasource;
 
-	static {
+	private static AbstractConfiguration getConfiguration() {
 		try {
-			throw new Exception();
-			// ConfigurationFactory factory = new ConfigurationFactory();
-			// configuration = factory.getConfiguration();
-			// DatabaseConfiguration ddbbconfig = new DatabaseConfiguration(
-			// datasource, "table", "key", "value");
+			if (configuration == null)
+				configuration = new DatabaseConfiguration(datasource,
+						"configuration", "key", "value");
 		} catch (Throwable t) {
 			log.error("Error loading configuration: " + t);
+		}
+		return configuration;
+	}
 
-			configuration = new Object();
+	static public String get(String key, String value) {
+		try {
+			return getConfiguration().getString(key, value);
+		} catch (Throwable t) {
+			return value;
 		}
 	}
 
-	static public Object getConfiguration() {
-		return configuration;
+	static public Integer get(String key, Integer value) {
+		try {
+			return getConfiguration().getInteger(key, value);
+		} catch (Throwable t) {
+			return value;
+		}
 	}
 }

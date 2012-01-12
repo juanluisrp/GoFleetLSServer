@@ -35,12 +35,14 @@ import javax.persistence.Id;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.NamedNativeQuery;
 import org.hibernate.annotations.Type;
 
 import com.vividsolutions.jts.geom.Geometry;
 
 @Entity
 @Immutable
+@NamedNativeQuery(name = "tsp", resultClass = HBA.class, query = "select id, geom, name, cost from gls_tsp(:tablename, cast(ARRAY[:stoptable] as geometry[]), :gid, :start)", cacheable = true, readOnly = true)
 @Cache(usage = CacheConcurrencyStrategy.READ_ONLY)
 public class HBA implements java.io.Serializable {
 	private static final long serialVersionUID = 3718703072510002908L;
@@ -53,7 +55,7 @@ public class HBA implements java.io.Serializable {
 	@Column(name = "name")
 	private String name;
 	@Column(name = "cost")
-	private Long cost;
+	private Double cost;
 
 	public Long getId() {
 		return id;
@@ -79,11 +81,11 @@ public class HBA implements java.io.Serializable {
 		this.name = name;
 	}
 
-	public Long getCost() {
+	public Double getCost() {
 		return cost;
 	}
 
-	public void setCost(Long cost) {
+	public void setCost(Double cost) {
 		this.cost = cost;
 	}
 

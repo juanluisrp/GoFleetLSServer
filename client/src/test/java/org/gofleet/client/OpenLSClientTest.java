@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2011, Emergya (http://www.emergya.es)
+ * Copyright (C) 2012, Emergya (http://www.emergya.com)
  *
- * @author <a href="mailto:marias@emergya.com">María Arias</a>
+ * @author <a href="mailto:marias@emergya.com">María Arias de Reyna</a>
  *
- * This file is part of GoFleet
+ * This file is part of GoFleetLS
  *
  * This software is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,27 +25,41 @@
  * This exception does not however invalidate any other reasons why the
  * executable file might be covered by the GNU General Public License.
  */
-package org.gofleet.openLS.ddbb.dialect;
+package org.gofleet.client;
 
-import org.hibernate.dialect.function.StandardSQLFunction;
-import org.hibernate.type.StandardBasicTypes;
-import org.hibernatespatial.postgis.PostgisDialect;
+import static org.junit.Assert.*;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+
+import net.opengis.xls.v_1_2_0.XLSType;
+
+import org.gofleetls.client.OpenLSClient;
+import org.junit.Test;
 
 /**
- * 
- * This dialect inherits from {@link PostgisDialect} and adds our own gls_* functions
- * 
  * @author marias
  * 
  */
-public class GoFleetDialect extends PostgisDialect {
+public class OpenLSClientTest {
 
-	private static final long serialVersionUID = -2978866125590491127L;
+	private String url = "http://localhost:8080/gofleetLS/";
+	/**
+	 * Test method for
+	 * {@link org.gofleetls.client.OpenLSClient#post(net.opengis.xls.v_1_2_0.XLSType, java.lang.String)}
+	 * .
+	 * @throws JAXBException 
+	 */
+	@Test
+	@SuppressWarnings("restriction")
+	public void testPost() throws JAXBException {
+		Unmarshaller m = JAXBContext.newInstance(XLSType.class)
+				.createUnmarshaller();
+		JAXBElement<XLSType> object = (JAXBElement<XLSType>) m.unmarshal(OpenLSClientTest.class
+				.getResourceAsStream("/determineRouteRequest.xml"));
 
-	@Override
-    protected void registerTypesAndFunctions() {
-		super.registerTypesAndFunctions();
-        registerFunction("tsp", new StandardSQLFunction("gls_tsp"));
+		assertNotNull(OpenLSClient.post(object.getValue(), url));
 	}
-	
 }

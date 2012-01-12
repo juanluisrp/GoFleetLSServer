@@ -146,8 +146,4 @@
 		timeToIdleSeconds="10" timeToLiveSeconds="30" overflowToDisk="true"
 		diskPersistent="false" diskExpiryThreadIntervalSeconds="120"
 		memoryStoreEvictionPolicy="LFU" />
-
-	<!-- Generic -->
-	<cache name="org.gofleet.bbdd.beans.Street" maxElementsInMemory="300"
-		eternal="false" overflowToDisk="true" />
 </ehcache>

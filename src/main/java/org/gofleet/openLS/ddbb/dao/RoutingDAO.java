@@ -30,11 +30,9 @@ package org.gofleet.openLS.ddbb.dao;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
-import java.sql.Array;
-import java.sql.CallableStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -42,6 +40,7 @@ import javax.annotation.Resource;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 import net.opengis.gml.v_3_1_1.LineStringType;
@@ -61,15 +60,12 @@ import org.apache.commons.logging.LogFactory;
 import org.gofleet.configuration.Configuration;
 import org.gofleet.openLS.ddbb.GeoCoding;
 import org.gofleet.openLS.ddbb.bean.HBA;
-import org.gofleet.openLS.ddbb.bean.Routing;
-import org.gofleet.openLS.ddbb.order.StDistance;
 import org.gofleet.openLS.util.GeoUtil;
-import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
+import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.criterion.Projections;
-import org.postgresql.jdbc4.Jdbc4Array;
+import org.hibernatespatial.GeometryUserType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate3.HibernateCallback;
 import org.springframework.orm.hibernate3.HibernateTemplate;
@@ -77,11 +73,12 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.PrecisionModel;
+import com.vividsolutions.jts.geom.impl.CoordinateArraySequence;
+import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 
 @Repository
@@ -94,6 +91,8 @@ public class RoutingDAO {
 	private static final String EPSG_4326 = Configuration.get("ROUTING_EPSG",
 			"EPSG:4326");
 
+	private GeometryFactory gf = new GeometryFactory();
+
 	private HibernateTemplate hibernateTemplate;
 
 	private static Log LOG = LogFactory.getLog(RoutingDAO.class);
@@ -101,153 +100,84 @@ public class RoutingDAO {
 	@SuppressWarnings("unused")
 	@Resource
 	private GeoCoding geocoding;
+	private Unmarshaller unmarshaller;
+	private JAXBContext context;
+	private Marshaller marshaller;
+
+	/**
+	 * 
+	 */
+	public RoutingDAO() {
+		try {
+			unmarshaller = JAXBContext.newInstance(LineStringType.class)
+					.createUnmarshaller();
+			context = JAXBContext.newInstance("org.jvnet.ogc.gml.v_3_1_1.jts");
+			marshaller = context.createMarshaller();
+		} catch (JAXBException e) {
+			LOG.error(e, e);
+		}
+	}
 
 	@Autowired
 	public void setSessionFactory(SessionFactory sessionFactory) {
 		hibernateTemplate = new HibernateTemplate(sessionFactory);
 	}
 
-	/**
-	 * Devuelve el id del vértice más cercano, calculado según la tabla de
-	 * routing.
-	 * 
-	 * @param p
-	 * @param end
-	 * @return
-	 */
-	@Transactional(readOnly = true)
-	private Integer getVertex(final Geometry p, final boolean end) {
-		LOG.trace("getVertex(" + p + ", " + end + ")");
-		HibernateCallback<Integer> action = new HibernateCallback<Integer>() {
-
-			public Integer doInHibernate(Session session)
-					throws HibernateException, SQLException {
-				p.setSRID(4326);
-				Criteria criteria = session.createCriteria(Routing.class);
-				criteria.addOrder(StDistance.asc("geometry", p));
-				criteria.setProjection(Projections.id());
-				criteria.setMaxResults(1);
-				criteria.setCacheable(true);
-				return (Integer) criteria.uniqueResult();
-			}
-		};
-		return hibernateTemplate.executeWithNativeSession(action);
-	}
-
 	@Transactional(readOnly = true)
 	public DetermineRouteResponseType routePlan(
 			final DetermineRouteRequestType param) {
+
 		HibernateCallback<DetermineRouteResponseType> action = new HibernateCallback<DetermineRouteResponseType>() {
 
+			@SuppressWarnings("unchecked")
 			public DetermineRouteResponseType doInHibernate(Session session)
 					throws HibernateException, SQLException {
-				// TODO change deprecation?
-				@SuppressWarnings("deprecation")
-				CallableStatement consulta = session.connection().prepareCall(
-						"{call gls_tsp(?,?,?,?)}");
+				Query consulta = session.getNamedQuery("tsp");
 
 				WayPointListType wayPointList = param.getRoutePlan()
 						.getWayPointList();
-				Integer source = getSourcePoint(param.getRoutePlan()
-						.getWayPointList().getStartPoint());
-				Array stopTable = getStopTables(session, wayPointList);
 
-				consulta.setString(1, TABLE_ROUTING);
-				consulta.setArray(2, stopTable);
-				consulta.setString(3, GID_ROUTING);
-				if (source != null)
-					consulta.setInt(4, source.intValue());
-				else
-					consulta.setInt(4, -1);
+				List<Geometry> stops = new LinkedList<Geometry>();
+				for (WayPointType wayPoint : wayPointList.getViaPoint()) {
+					stops.add(GeoUtil.getPoint(wayPoint));
+				}
+				stops.add(GeoUtil.getPoint(wayPointList.getEndPoint()));
 
+				consulta.setString("tablename", TABLE_ROUTING);
+				consulta.setParameterList("stoptable", stops,
+						GeometryUserType.TYPE);
+				consulta.setString("gid", GID_ROUTING);
+				consulta.setParameter("start",
+						GeoUtil.getPoint(wayPointList.getStartPoint()),
+						GeometryUserType.TYPE);
+
+				consulta.setReadOnly(true);
 				LOG.debug(consulta);
 
-				return getRouteResponse(consulta.executeQuery());
+				return getRouteResponse(consulta.list());
 
-			}
-
-			private Integer getSourcePoint(WayPointType startPoint) {
-				return getVertex(GeoUtil.getPoint(startPoint), false);
-			}
-
-			private Array getStopTables(Session session,
-					WayPointListType wayPointList) throws SQLException {
-				List<Integer> stops = new ArrayList<Integer>();
-				for (WayPointType wayPoint : wayPointList.getViaPoint()) {
-					Integer bi = getVertex(GeoUtil.getPoint(wayPoint), false);
-					if (bi != null)
-						stops.add(bi.intValue());
-				}
-				Integer vertex = getVertex(
-						GeoUtil.getPoint(wayPointList.getEndPoint()), false);
-				if (vertex != null)
-					stops.add(vertex.intValue());
-
-				// TODO change deprecation?
-				@SuppressWarnings("deprecation")
-				Array stopTable = session.connection().createArrayOf("int4",
-						stops.toArray(new Integer[] {}));
-				return stopTable;
 			}
 
 		};
 		return hibernateTemplate.executeWithNativeSession(action);
 	}
 
-	@SuppressWarnings("unchecked")
-	@Transactional(readOnly = true)
-	public List<HBA> getHBA(final Point origen, final Point goal) {
+	private RouteGeometryType getRouteGeometry(
+			com.vividsolutions.jts.geom.LineString geometry)
+			throws JAXBException, ParseException {
 
-		HibernateCallback<List<HBA>> action = new HibernateCallback<List<HBA>>() {
-
-			public List<HBA> doInHibernate(Session session)
-					throws HibernateException, SQLException {
-				String sqlQuery = "";
-				try {
-					sqlQuery = "select * from hba(st_setsrid(st_geomFromText(?), "
-							+ EPSG_4326
-							+ "), st_setsrid(st_geomFromText(?), "
-							+ EPSG_4326 + "))";
-					final List<HBA> list = session.createSQLQuery(sqlQuery)
-							.addEntity(HBA.class)
-							.setParameter(0, origen.toText())
-							.setParameter(1, goal.toText()).setReadOnly(true)
-							.list();
-					return list;
-			
-				} catch (Throwable e) {
-					LOG.error("Error calculating route ('" + sqlQuery + "'): ["
-							+ e + "]");
-					return null;
-				}
-			}
-		};
-		return hibernateTemplate.executeWithNativeSession(action);
-	}
-
-	private RouteGeometryType getRouteGeometry(List<Coordinate> lineStrings)
-			throws JAXBException {
-		LineString line = (new GeometryFactory(new PrecisionModel(), 4326))
-				.createLineString(lineStrings.toArray(new Coordinate[] {}));
-
-		JAXBContext context = JAXBContext
-				.newInstance("org.jvnet.ogc.gml.v_3_1_1.jts");
+		LineString line = (LineString) (new WKTReader()).read(
+				geometry.toString()).getGeometryN(0);
 
 		if (LOG.isTraceEnabled())
-			context.createMarshaller().marshal(line, System.out);
+			marshaller.marshal(line, System.out);
 
 		StringWriter writer = new StringWriter();
-		context.createMarshaller().marshal(line, writer);
-
-		Unmarshaller unmarshaller = JAXBContext.newInstance(
-				LineStringType.class).createUnmarshaller();
+		marshaller.marshal(line, writer);
 		StringReader reader = new StringReader(writer.toString());
 
-		@SuppressWarnings("unchecked")
-		JAXBElement<LineStringType> lineElement = (JAXBElement<LineStringType>) unmarshaller
-				.unmarshal(reader);
-
-		LineStringType lineString = lineElement.getValue();
+		LineStringType lineString = ((JAXBElement<LineStringType>) unmarshaller
+				.unmarshal(reader)).getValue();
 
 		RouteGeometryType routeGeometry = new RouteGeometryType();
 		routeGeometry.setLineString(lineString);
@@ -282,68 +212,50 @@ public class RoutingDAO {
 		handleType.setServiceID("-1");
 		return handleType;
 	}
-	private DetermineRouteResponseType getRouteResponse(
-			ResultSet resultado) throws SQLException {
+
+	private DetermineRouteResponseType getRouteResponse(List<HBA> resultado)
+			throws SQLException {
 
 		DetermineRouteResponseType res = new DetermineRouteResponseType();
-		Integer last = -1;
-		if (resultado.next()) {
-			String[][] array = (String[][]) ((Jdbc4Array) resultado
-					.getArray(1)).getArray();
+		Long last = -1l;
+		List<Coordinate> coords = new LinkedList<Coordinate>();
+		double cost = 0;
 
-			if (LOG.isTraceEnabled()) {
-				for (String[] step : array)
-					LOG.trace("Going to " + step[0] + " at cost "
-							+ step[1] + " using " + step[2]);
-			}
+		int i = 0;
 
-			WKTReader wktReader = new WKTReader();
-			List<Coordinate> coordinates = new LinkedList<Coordinate>();
-			Double cost = 0d;
-
-			for (String[] step : array) {
-				try {
-					Integer current = new Integer(step[0]);
-					LOG.trace("Comparing " + current + " with " + last);
-					if (!current.equals(last)) {
-						Geometry geometry = wktReader.read(step[2]);
-						LOG.trace(geometry);
-						try {
-							for (Coordinate coord : geometry
-									.getCoordinates())
-								coordinates.add(coord);
-							Double tmp_cost = new Double(step[1]);
-							if (!(tmp_cost.isInfinite() || tmp_cost
-									.isNaN())) {
-								cost += tmp_cost;
-							}
-						} catch (Exception e) {
-							LOG.error("Unknown Geometry '" + geometry
-									+ "'", e);
-						}
-						LOG.trace("New cost " + cost);
-					} else
-						LOG.trace("Repeating step " + current);
-					last = current;
-				} catch (Exception e) {
-					LOG.error("Unknown Geometry", e);
-				}
-			}
-
-			RouteGeometryType routeGeometry;
+		for (HBA step : resultado) {
+			i++;
 			try {
-				routeGeometry = getRouteGeometry(coordinates);
-				res.setRouteGeometry(routeGeometry);
-			} catch (JAXBException e) {
-				LOG.error(e, e);
+				Long current = step.getId();
+				if (!current.equals(last)) {
+					coords.addAll(Arrays.asList(step.getGeometria()
+							.getCoordinates()));
+					cost += step.getCost();
+				} else
+					LOG.trace("Repeating step " + current);
+				last = current;
+			} catch (Exception e) {
+				LOG.error("Unknown Step", e);
 			}
-
-			res.setRouteHandle(getRouteHandle(coordinates));
-			res.setRouteInstructionsList(getInstructionsList(coordinates));
-			res.setRouteMap(getRouteMap(coordinates));
-			res.setRouteSummary(getRouteSummary(cost));
 		}
+
+		RouteGeometryType routeGeometry;
+		try {
+			CoordinateSequence cs = new CoordinateArraySequence(
+					coords.toArray(new Coordinate[] {}));
+			LineString line = new LineString(cs, gf);
+			routeGeometry = getRouteGeometry(line);
+			res.setRouteGeometry(routeGeometry);
+		} catch (JAXBException e) {
+			LOG.error(e, e);
+		} catch (ParseException e) {
+			LOG.error(e, e);
+		}
+
+		res.setRouteHandle(getRouteHandle(coords));
+		res.setRouteInstructionsList(getInstructionsList(coords));
+		res.setRouteMap(getRouteMap(coords));
+		res.setRouteSummary(getRouteSummary(cost));
 		return res;
 	}
-
 }

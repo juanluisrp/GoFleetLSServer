@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.gofleet.openLS.ddbb.dao.GeoCodingDAO;
+import org.gofleet.openLS.ddbb.dao.RoutingDAO;
 import org.postgis.PGgeometry;
 import org.postgis.Point;
 import org.postgresql.jdbc4.Jdbc4Array;
@@ -213,6 +214,8 @@ public class GeoUtil {
 		com.vividsolutions.jts.geom.Point p = geomFact
 				.createPoint(new Coordinate(ctype.getValue().get(0), ctype
 						.getValue().get(1)));
+		
+		p.setSRID(4326);
 		return p;
 	}
 
