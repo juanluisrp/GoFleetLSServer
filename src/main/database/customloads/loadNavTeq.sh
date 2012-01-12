@@ -44,9 +44,9 @@ $PSQL -c "CREATE INDEX cdms_condid_idx ON cdms USING btree (cond_id);"&
 $PSQL -c "CREATE INDEX rdms_linkid_idx ON rdms USING btree (cond_id);"&
 $PSQL -c "CREATE INDEX rdms_condid_idx ON rdms USING btree (link_id);"&
 
-$PSQL -c "VACUUM ANALYZE zlevels;"
-$PSQL -c "VACUUM ANALYZE rdms;"
-$PSQL -c "VACUUM ANALYZE cdms;"
+$PSQL -c "VACUUM ANALYZE zlevels;" &
+$PSQL -c "VACUUM ANALYZE rdms;"&
+$PSQL -c "VACUUM ANALYZE cdms;"&
 $PSQL -c "VACUUM ANALYZE streets;"
 
 NOW=$(date +%s)
@@ -106,7 +106,7 @@ $PSQL -c "DROP VIEW routing_norestrictions_view CASCADE;"
 
 $PSQL -c "CREATE OR REPLACE VIEW routing_restrictions_view AS
 SELECT 
-        s.func_class as category,
+        s.func_class::integer as category,
         s.link_id::integer as id,
         CASE s.dir_travel
                 WHEN 'B' THEN st_length(s.the_geom)::double precision
@@ -126,7 +126,8 @@ SELECT
         st_Y(st_endpoint(s.the_geom::geometry))::double precision as y2,
         'infinity'::double precision as to_cost,
         man_linkid::integer as rule,
-        s.the_geom as geometry
+        s.the_geom as geometry,
+	s.st_name as name
 FROM 
         streets as s,
 	cdms,
@@ -139,7 +140,7 @@ WHERE
 
 $PSQL -c "CREATE OR REPLACE VIEW routing_norestrictions_view AS
 SELECT 
-        s.func_class as category,
+        s.func_class::integer as category,
         s.link_id::integer as id,
         CASE s.dir_travel
                 WHEN 'B' THEN st_length(s.the_geom)::double precision
@@ -159,7 +160,8 @@ SELECT
         st_Y(st_endpoint(s.the_geom::geometry))::double precision as y2,
         'infinity'::double precision as to_cost,
         null::integer as rule,
-        s.the_geom as geometry
+        s.the_geom as geometry,
+	s.st_name as name
 FROM 
         streets as s;"
 
@@ -189,7 +191,7 @@ echo "Generating second iteration of vials (z-levels)"
 $PSQL -c "DROP VIEW routing_zlevel_restrictions_view;"
 $PSQL -c "CREATE OR REPLACE VIEW routing_zlevel_restrictions_view AS 
 SELECT
-        source.category as category,
+        source.category::integer as category,
         source.id as id,
         source.cost as cost,
         source.reverse_cost as reverse_cost,
@@ -201,7 +203,8 @@ SELECT
         source.y2 as y2,
         'infinity'::double precision as to_cost,
         target.id::integer as rule,
-        source.geometry as geometry
+        source.geometry as geometry,
+	source.name as name
 FROM 
         (SELECT r.*, z.z_level 
 		FROM 
@@ -231,8 +234,12 @@ $PSQL -c "INSERT INTO routing_""$NOW"" SELECT * FROM routing_zlevel_restrictions
 
 echo "Updating views"
 
+$PSQL -c "DROP VIEW vertex;"
+
 $PSQL -c "DROP VIEW routing;"
 
 $PSQL -c "SELECT gls_updateAllTables('$NOW'::varchar);"
+
+$PSQL -c "CREATE OR REPLACE VIEW vertex AS SELECT routing.geometry AS geom, routing.source AS id FROM routing;"
 
 echo "Importation successfull."
