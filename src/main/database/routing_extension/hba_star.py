@@ -11,6 +11,8 @@ heuristic_plan = -1
 adj_plan_rev = -1
 adj_plan = -1
 heuristic_constant=10
+distance_plan = -1
+distance_buffer = 150
 
 #The heuristic used by A* is the euclidean length
 def hba_heuristic(source, target, tablename='vertex', col_geom='geom', col_id='id'):
@@ -139,6 +141,78 @@ def hba_adj(cat, source, target, p, tablename='routing', col_geom='geom', col_ed
   else:
     return plpy.execute(adj_plan_rev, [source, last_id, target])
 
+
+#Candidates to be the next node WITHOUT checking category
+#The function returns edges
+def hba_adj_buffer(source, target, p, tablename='routing', col_geom='geom', col_edge='id', col_cost='cost', col_source='source', col_target='target', col_revc='reverse_cost', col_cat='category', col_name='name', col_rule='rule'):
+  if adj_plan == -1:
+    global adj_plan
+    global adj_plan_rev
+    adj_plan_rev = plpy.prepare('\n\
+    select a.*, st_distance_sphere(st_startpoint(a.geom), b.geom) + a.length * ' + str(heuristic_constant) + ' as heuristic from ((select  \n\
+        ' + col_geom + ' as geom, \n\
+        ' + col_edge + ' as id, \n\
+        ' + col_revc + ' as cost,\n\
+        st_distance_sphere(st_startpoint(' + col_geom + '), st_endpoint(' + col_geom + ')) as length,\n\
+        ' + col_target + ' as source, \n\
+        ' + col_source + ' as target, \n\
+        ' + col_cat + ' as category, \n\
+        ' + col_name + ' as name from ' + tablename + '\n\
+        ) union all (select  \n\
+        st_reverse(' + col_geom + ') as geom, \n\
+        ' + col_edge + ' as id, \n\
+        ' + col_cost + ' as cost, \n\
+        st_distance_sphere(st_startpoint(' + col_geom + '), st_endpoint(' + col_geom + ')) as length,\n\
+        ' + col_source + ' as source,\n\
+        ' + col_target + ' as target, \n\
+        ' + col_cat + ' as category, \n\
+        ' + col_name + ' as name from ' + tablename + ' )\n\
+        ) a, (select st_startpoint(' + col_geom + ')  as geom from ' + tablename + ' where ' + col_source + ' = $3 or ' + col_target + ' = $3 limit 1) b \n\
+                where source = $1\n\
+                and cost <> \'Infinity\''
+             #Turn restrictions:
+        + 'and ' + col_edge + ' not in (SELECT ' + col_rule + ' from ' + tablename + ' r where r.' + col_edge + ' = $2 and ' + col_rule + ' is not null)'
+       , ['Integer', 'Integer', 'Integer'])
+    adj_plan = plpy.prepare('\n\
+    select a.*, st_distance_sphere(st_startpoint(a.geom), b.geom) + a.length * ' + str(heuristic_constant) + ' as heuristic from ((select  \n\
+	st_reverse(' + col_geom + ') as geom, \n\
+	' + col_edge + ' as id, \n\
+	' + col_revc + ' as cost,\n\
+        st_distance_sphere(st_startpoint(' + col_geom + '), st_endpoint(' + col_geom + ')) as length,\n\
+	' + col_target + ' as source, \n\
+	' + col_source + ' as target, \n\
+	' + col_cat + ' as category, \n\
+	' + col_name + ' as name from ' + tablename + '\n\
+	) union all (select  \n\
+	' + col_geom + ' as geom, \n\
+	' + col_edge + ' as id, \n\
+	' + col_cost + ' as cost, \n\
+        st_distance_sphere(st_startpoint(' + col_geom + '), st_endpoint(' + col_geom + ')) as length,\n\
+	' + col_source + ' as source,\n\
+	' + col_target + ' as target, \n\
+	' + col_cat + ' as category, \n\
+	' + col_name + ' as name from ' + tablename + ' )\n\
+	) a, (select st_startpoint(' + col_geom + ')  as geom from ' + tablename + ' where ' + col_source + ' = $3 or ' + col_target + ' = $3 limit 1) b \n\
+		where source = $1\n\
+		and cost <> \'Infinity\''
+             #Turn restrictions:
+	+ 'and ' + col_edge + ' not in (SELECT ' + col_rule + ' from ' + tablename + ' r where r.' + col_edge + ' = $2 and ' + col_rule + ' is not null)'
+       , ['Integer', 'Integer', 'Integer'])
+  try:
+    last_id = int(p[int(source)][1]['id'])
+  except:
+    last_id = -1
+ 
+#  plpy.info([source, last_id, target])
+  if "source" in col_source:
+    return plpy.execute(adj_plan, [source, last_id, target])
+  else:
+    return plpy.execute(adj_plan_rev, [source, last_id, target])
+
+
+
+
+
 def hba_bestNext(ol):
   cost_tmp = float('inf')
   x = -1
@@ -148,17 +222,18 @@ def hba_bestNext(ol):
       x = k
   return x
 
-def hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed=[]):
+def hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed=[], distance='Infinity'):
   cat_array = [cat]
-  categories = [hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed) for y in adj]
+  categories = [hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed, distance) for y in adj]
   cat = cat_array[0]
 #  if len(already_processed) == 0 and cat <= 8:
 #   hba_process_y(adj, p, cat + 1, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed)
 
-def hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed):
+def hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed, distance):
   cat = cat_array[0]
   #Maybe we have reached this vertex before, on a better way
-  if hba_check_if_already_reached(y, already_processed, cat):
+  global distance_buffer
+  if hba_check_if_already_reached(y, already_processed, cat, distance <= distance_buffer):
     already_processed.append(y['id'])
     #Link is of current category or better
     cost = d[x] + hba_stepcost(y)
@@ -166,8 +241,8 @@ def hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, 
     if hba_check_if_better(y_id, ol, cl, cost, d):
       cat_array[0] = hba_update_y(x, y, y_id, d, p, cat, cl, ol, cost, target, vertex_tablename, col_vertex_geom, col_edge)
 
-def hba_check_if_already_reached(y, already_processed, cat):
-  return y['category'] <= cat and not y['id'] in already_processed
+def hba_check_if_already_reached(y, already_processed, cat, local=0):
+  return (not local or y['category'] <= cat) and not y['id'] in already_processed
 
 def hba_check_if_better(y_id, ol, cl, cost, d):
   return (not(y_id in ol) and not(y_id in cl)) or cost < d[y_id]
@@ -183,7 +258,6 @@ def hba_update_y(x, y, y_id, d, p, cat, cl, ol, cost, target, vertex_tablename, 
 
 #A* function, but just one step
 def hba_astar(source, target, ol, cl, cl2, cat, d, p, tablename='routing', col_geom='geom', col_edge='id', col_cost='cost', col_revc='reverse_cost', col_source='source', col_target='target', vertex_tablename='vertex', col_cat='category', col_vertex_geom='geom', col_name='name', col_rule='rule'):
- 
   #If we don't have open candidates...
   if len(ol) == 0:
     return 0
@@ -201,14 +275,28 @@ def hba_astar(source, target, ol, cl, cl2, cat, d, p, tablename='routing', col_g
       return x
 
     #Next candidates
-    adj = hba_adj(cat, x, target, p,tablename, col_geom, col_edge, col_cost, col_source, col_target, col_revc, col_cat, col_name, col_rule)
+    # If we are in the initialization buffer, use hba_adj_initialization
+    if distance_plan == -1:
+        global distance_plan
+        distance_plan = plpy.prepare('\n\
+            ' + 'SELECT st_distance_sphere(v1.geom, v2.geom) as dist from vertex v1, vertex v2 where v1.id = $1 and v2.id = $2',
+        ['Integer', 'Integer'])
+    distance =plpy.execute(distance_plan, [source, x])[0]["dist"]
+    plpy.info("Distance from origin=" + str(distance)) 
+    if (distance <= distance_buffer):
+      plpy.info("Using hba_adj_buffer")
+      adj = hba_adj_buffer(x, target, p,tablename, col_geom, col_edge, col_cost, col_source, col_target, col_revc, col_cat, col_name, col_rule)
+    else:
+      plpy.info("Using hba_adj")
+      adj = hba_adj(cat, x, target, p,tablename, col_geom, col_edge, col_cost, col_source, col_target, col_revc, col_cat, col_name, col_rule)
+    #plpy.info("Obtained adjacents for node " + str(x) + " with category cat >= " + str(cat) + ". " + str(adj.nrows()) + " nodes.")
 
     #Forever alone
     if adj is None:
       plpy.error("This vertex is alone")
 
     #For each candidate
-    hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge)
+    hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, [],  distance)
   
   #Return false, we still have to loop more
   return 0
@@ -267,8 +355,8 @@ def hba_star_pl(source, target, tablename='routing', col_edge='id', col_cost='co
 
   plpy.info("cl:", len(clf) + len(clb))
 
-#  plpy.info(clf)
-#  plpy.info(clb)
+  plpy.info(clf)
+  plpy.info(clb)
 
   if m == 0:
     plpy.info("No path found. Inferring path")
