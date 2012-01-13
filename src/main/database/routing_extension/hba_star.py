@@ -84,7 +84,7 @@ def hba_adj(cat, source, target, p, tablename='routing', col_geom='geom', col_ed
     select a.*, st_distance_sphere(st_startpoint(a.geom), b.geom) + a.length * ' + str(heuristic_constant) + ' * (a.category + 1) as heuristic from ((select  \n\
         ' + col_geom + ' as geom, \n\
         ' + col_edge + ' as id, \n\
-        ' + col_revc + ' as cost,\n\
+        ' + col_cost + ' as cost,\n\
         st_distance_sphere(st_startpoint(' + col_geom + '), st_endpoint(' + col_geom + ')) as length,\n\
         ' + col_target + ' as source, \n\
         ' + col_source + ' as target, \n\
@@ -93,14 +93,14 @@ def hba_adj(cat, source, target, p, tablename='routing', col_geom='geom', col_ed
         ) union all (select  \n\
         st_reverse(' + col_geom + ') as geom, \n\
         ' + col_edge + ' as id, \n\
-        ' + col_cost + ' as cost, \n\
+        ' + col_revc + ' as cost, \n\
         st_distance_sphere(st_startpoint(' + col_geom + '), st_endpoint(' + col_geom + ')) as length,\n\
         ' + col_source + ' as source,\n\
         ' + col_target + ' as target, \n\
         ' + col_cat + ' as category, \n\
         ' + col_name + ' as name from ' + tablename + ' )\n\
         ) a, (select st_startpoint(' + col_geom + ')  as geom from ' + tablename + ' where ' + col_source + ' = $3 or ' + col_target + ' = $3 limit 1) b \n\
-                where source = $1\n\
+                where source = $1 and category >= 0\n\
                 and cost <> \'Infinity\''
              #Turn restrictions:
         + 'and ' + col_edge + ' not in (SELECT ' + col_rule + ' from ' + tablename + ' r where r.' + col_edge + ' = $2 and ' + col_rule + ' is not null)'
@@ -125,7 +125,7 @@ def hba_adj(cat, source, target, p, tablename='routing', col_geom='geom', col_ed
 	' + col_cat + ' as category, \n\
 	' + col_name + ' as name from ' + tablename + ' )\n\
 	) a, (select st_startpoint(' + col_geom + ')  as geom from ' + tablename + ' where ' + col_source + ' = $3 or ' + col_target + ' = $3 limit 1) b \n\
-		where source = $1\n\
+		where source = $1 and category >= 0\n\
 		and cost <> \'Infinity\''
              #Turn restrictions:
 	+ 'and ' + col_edge + ' not in (SELECT ' + col_rule + ' from ' + tablename + ' r where r.' + col_edge + ' = $2 and ' + col_rule + ' is not null)'
@@ -223,11 +223,16 @@ def hba_bestNext(ol):
   return x
 
 def hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed=[], distance='Infinity'):
-  cat_array = [cat]
+#  plpy.info("hba_process_y", cat[0])
+  cat_array = cat
+  cat_array[0] = cat_array[0] + 1 
   categories = [hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed, distance) for y in adj]
-  cat = cat_array[0]
-#  if len(already_processed) == 0 and cat <= 8:
-#   hba_process_y(adj, p, cat + 1, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed)
+  cat = cat_array
+#  plpy.info("Salimos del hba_process_y con ", cat[0])
+  if len(already_processed) == 0 and len(adj) > 0:
+   plpy.info("Bajando nivel desde ", cat[0])
+   cat[0] = 10 
+   hba_process_y(adj, p, cat, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed, distance)
 
 def hba_process_vertex(y, p, cat_array, d, ol, cl, x, target, vertex_tablename, col_vertex_geom, col_edge, already_processed, distance):
   cat = cat_array[0]
@@ -329,8 +334,8 @@ def hba_star_pl(source, target, tablename='routing', col_edge='id', col_cost='co
   pt = {}
 
   #Current category of search (backward and forward)
-  catf = 10
-  catb = 10
+  catf = [10]
+  catb = [10]
 
   #Initial values
   olf[source] = d[source] + hba_heuristic(source, target, vertex_tablename, col_vertex_geom, col_edge)
